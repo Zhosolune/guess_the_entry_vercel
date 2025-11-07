@@ -34,6 +34,7 @@
   }
   html {
     scroll-behavior: smooth;
+    transition: background-color 200ms ease, color 200ms ease;
   }
   
   body {
@@ -42,6 +43,21 @@
       sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+  /* 暗色主题变量（通过 html.dark 类控制，优先于系统偏好） */
+  html.dark {
+    color-scheme: dark;
+    --color-bg-app: #0f172a;       /* slate-900 */
+    --color-surface: #111827;      /* gray-900 */
+    --color-border: #334155;       /* slate-700 */
+    --color-text: #e5e7eb;         /* gray-200 */
+    --color-text-muted: #94a3b8;   /* slate-400 */
+    --color-btn-bg: #1f2937;       /* gray-800 */
+    --color-btn-fg: #e5e7eb;       /* gray-200 */
+    --color-btn-bg-hover: #374151; /* gray-700 */
+    --color-btn-border: #334155;   /* slate-700 */
+    --color-accent: #64748b;       /* slate-500 */
   }
 }
 
@@ -119,17 +135,32 @@
     opacity: 1;
   }
 
-  /* 游戏卡片样式 */
+  /* 游戏卡片样式（使用主题变量）*/
   .game-card {
-    @apply bg-white rounded-xl shadow-lg border border-gray-200 transition-all duration-300 hover:shadow-xl;
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    background: var(--color-surface);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    transition: all var(--transition);
   }
   
   /* 旧版 .btn-primary(indigo) 已移除，避免覆盖变量驱动的主题色样式 */
   
   /* 次要按钮样式 */
   .btn-secondary {
-    @apply bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.5rem 1rem;
+    background: var(--color-btn-bg);
+    color: var(--color-btn-fg);
+    border: 1px solid var(--color-btn-border);
+    border-radius: 0.5rem;
+    transition: all var(--transition);
   }
+  .btn-secondary:hover { background: var(--color-btn-bg-hover); }
+  .btn-secondary:focus { outline: none; box-shadow: 0 0 0 2px var(--color-primary); }
   
   /* 成功按钮样式 */
   .btn-success {
@@ -143,7 +174,14 @@
   
   /* 输入框样式 */
   .form-input {
-    @apply w-full px-4 py-3 border border-gray-300 rounded-lg outline-none transition-all duration-200;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    outline: none;
+    background: var(--color-surface);
+    color: var(--color-text);
+    transition: all var(--transition);
   }
   .form-input:focus {
     border-color: var(--color-primary);
@@ -152,7 +190,15 @@
   
   /* 文本区域样式 */
   .form-textarea {
-    @apply w-full px-4 py-3 border border-gray-300 rounded-lg outline-none transition-all duration-200 resize-none;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    outline: none;
+    background: var(--color-surface);
+    color: var(--color-text);
+    transition: all var(--transition);
+    resize: none;
   }
   .form-textarea:focus {
     border-color: var(--color-primary);
@@ -193,12 +239,16 @@
   
   /* 卡片标题样式 */
   .card-title {
-    @apply text-xl font-semibold text-gray-800 mb-4;
+    font-size: 1.25rem; /* text-xl */
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 1rem;
   }
   
   /* 卡片内容样式 */
   .card-content {
-    @apply text-gray-600 leading-relaxed;
+    color: var(--color-text-muted);
+    line-height: 1.75;
   }
 }
 
@@ -296,40 +346,13 @@
   }
   
   /* 旋转动画 */
-  .spin-slow {
+.spin-slow {
     animation: spin 3s linear infinite;
   }
 }
 
-/* 暗色模式支持 */
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --color-bg-app: #0f172a;       /* slate-900 */
-    --color-surface: #111827;      /* gray-900 */
-    --color-border: #334155;       /* slate-700 */
-    --color-text: #e5e7eb;         /* gray-200 */
-    --color-text-muted: #94a3b8;   /* slate-400 */
-    --color-btn-bg: #1f2937;       /* gray-800 */
-    --color-btn-fg: #e5e7eb;       /* gray-200 */
-    --color-btn-bg-hover: #374151; /* gray-700 */
-    --color-btn-border: #334155;   /* slate-700 */
-    --color-accent: #64748b;       /* slate-500 */
-  }
-  
-  .game-card {
-    @apply bg-gray-800 border-gray-700;
-  }
-  
-  .form-input,
-  .form-textarea {
-    @apply bg-gray-700 border-gray-600 text-gray-200;
-  }
-  
-  .btn-secondary {
-    @apply bg-gray-700 hover:bg-gray-600 text-gray-200;
-  }
-}
+/* 暗色模式组件覆盖（通过 html.dark 激活） */
+/* 暗色模式下通过 html.dark 根变量覆盖，无需组件级别 @apply 覆盖 */
 
 /* 打印样式 */
 @media print {

@@ -51,7 +51,7 @@ export const GameStart: React.FC<GameStartProps> = memo(({ onStartGame, isLoadin
         {/* 顶部栏承载标题与规则弹窗，主页内容整体下移 */}
 
         {/* 领域选择 */}
-        <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">选择领域</h2>
+        <h2 className="text-xl font-semibold text-[var(--color-text)] mb-4 text-center">选择领域</h2>
         <div className="card-flat section mb-6">
           {/* 常规领域网格（不含“随机”） */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
@@ -112,7 +112,7 @@ export const GameStart: React.FC<GameStartProps> = memo(({ onStartGame, isLoadin
 
         {/* 加载提示 */}
         {isLoading && (
-          <div className="mt-4 text-center text-gray-500 text-sm">
+          <div className="mt-4 text-center text-[var(--color-text-muted)] text-sm">
             <p>正在为您生成精彩的词条，请稍候...</p>
             <div className="mt-2">
               <div className="inline-flex space-x-1">

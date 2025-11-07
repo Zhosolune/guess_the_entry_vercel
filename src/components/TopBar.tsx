@@ -56,7 +56,7 @@ export const TopBar: React.FC<TopBarProps> = memo(({ title = '词条猜测游戏
 
         {/* 中间居中标题 */}
         <div className="justify-self-center">
-          <h1 className="text-xl font-bold text-gray-800">{title}</h1>
+          <h1 className="text-xl font-bold text-[var(--color-text)]">{title}</h1>
         </div>
 
         {/* 右侧主题切换 */}
@@ -64,7 +64,11 @@ export const TopBar: React.FC<TopBarProps> = memo(({ title = '词条猜测游戏
           <button
             onClick={toggleTheme}
             className="inline-flex items-center p-2 text-[var(--color-text)] hover:text-[var(--color-primary)] focus:outline-none"
-            aria-label="切换主题"
+            aria-label={isDark ? '切换到明亮主题' : '切换到暗黑主题'}
+            role="switch"
+            aria-checked={isDark}
+            aria-pressed={isDark}
+            title={isDark ? '切换到明亮主题' : '切换到暗黑主题'}
           >
             {isDark ? (
               <Sun className="w-5 h-5" />
@@ -77,7 +81,7 @@ export const TopBar: React.FC<TopBarProps> = memo(({ title = '词条猜测游戏
 
       {/* 顶部栏底部满屏宽进度条 */}
       {typeof progress === 'number' && (
-        <div className="w-full h-1 bg-gray-200">
+        <div className="w-full h-1 bg-[var(--color-border)]">
           <div
             className="progress-fill h-1"
             style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
@@ -90,10 +94,10 @@ export const TopBar: React.FC<TopBarProps> = memo(({ title = '词条猜测游戏
         <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4" onClick={closeRules}>
           <div className="card-flat section max-w-lg w-full bg-[var(--color-surface)]" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-800">游戏规则</h2>
+              <h2 className="text-xl font-semibold text-[var(--color-text)]">游戏规则</h2>
               <button className="btn-flat" onClick={closeRules}>关闭</button>
             </div>
-            <div className="space-y-3 text-gray-600">
+            <div className="space-y-3 text-[var(--color-text-muted)]">
               <p>1、选择一个你感兴趣的领域，系统将随机生成一个词条</p>
               <p>2、输入单个汉字进行猜测，正确的字符会显示出来</p>
               <p>3、猜错的字符会被添加到“坟场”区域</p>

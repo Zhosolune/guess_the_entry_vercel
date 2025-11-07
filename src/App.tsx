@@ -127,7 +127,7 @@ const App: React.FC = memo(() => {
           <div className="container mx-auto max-w-6xl">
             <div className="mb-4">
               {/* 顶部栏正下方的居中统计（缩小字号） */}
-              <div className="flex items-center justify-center gap-4 mt-1 text-xs text-gray-400">
+              <div className="flex items-center justify-center gap-4 mt-1 text-xs text-[var(--color-text-muted)]">
                 <div><span className="font-medium">时间: {formattedTime}</span></div>
                 <div><span className="font-medium">尝试: {gameState.attempts}</span></div>
                 <div><span className="font-medium">进度: {gameProgress}%</span></div>

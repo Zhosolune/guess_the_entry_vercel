@@ -251,8 +251,8 @@ export const GameBoard: React.FC<GameBoardProps> = memo(({
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
           </svg>
         </div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">游戏出错</h3>
-        <p className="text-gray-600 mb-4">{error}</p>
+        <h3 className="text-lg font-semibold text-[var(--color-text)] mb-2">游戏出错</h3>
+        <p className="text-[var(--color-text-muted)] mb-4">{error}</p>
         <button 
           onClick={() => window.location.reload()}
           className="btn-flat"

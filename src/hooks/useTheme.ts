@@ -1,29 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useThemeContext } from '../theme/ThemeContext';
 
-type Theme = 'light' | 'dark';
-
+/**
+ * useTheme：向后兼容的主题 Hook
+ *
+ * 功能描述：
+ * - 代理 ThemeContext，提供与旧版一致的返回结构
+ * - 暴露 `theme`、`isDark` 与 `toggleTheme`
+ *
+ * 返回值说明：
+ * - theme: 当前实际生效主题（light|dark）
+ * - isDark: 是否暗色
+ * - toggleTheme: 切换明暗主题
+ */
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(() => {
-    const savedTheme = localStorage.getItem('theme') as Theme;
-    if (savedTheme) {
-      return savedTheme;
-    }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  });
-
-  useEffect(() => {
-    document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
-  };
-
-  return {
-    theme,
-    toggleTheme,
-    isDark: theme === 'dark'
-  };
-} 
+  const { theme, isDark, toggleTheme } = useThemeContext();
+  return { theme, isDark, toggleTheme } as const;
+}

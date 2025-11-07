@@ -479,3 +479,29 @@
 后续建议：
 - 如需在 `lg`/`xl` 断点进一步优化标题字号与顶部栏高度，可在 `TopBar` 中按断点调整 `h-14` 与 `text-lg`。
 - 规则弹窗可补充“示例图”与“快捷操作说明”，提升新手友好性。
+时间：2025-11-07 15:10
+操作类型：[重构]
+影响文件：
+- `src/index.css`
+- `src/components/TopBar.tsx`
+- `src/components/GameStart/GameStart.tsx`
+- `src/components/GameBoard/GameBoard.tsx`
+- `src/components/Graveyard/Graveyard.tsx`
+- `src/App.tsx`
+- `src/utils/errorHandler.ts`
+- `README.md`
+
+变更摘要：完善明暗主题系统并无缝接入现有组件。将暗色变量改为 `html.dark` 以避免 FOUC；为 TopBar 切换按钮加入 `role="switch"` 与 `aria-checked`；替换各组件 `text-gray-*` 为 `var(--color-text/--color-text-muted)`；进度条/卡片/按钮样式变量化；在 README 增加主题使用与定制指南。
+
+已完成内容：
+- `src/index.css`：统一变量体系；暗色改为 `html.dark`；新增过渡动画；变量化 `.game-card/.btn-secondary/.form-input/.form-textarea/.card-title/.card-content`。
+- `TopBar.tsx`：标题/弹窗文字用主题变量；进度轨道用边框变量；切换按钮 ARIA 完整。
+- 替换 `GameStart/GameBoard/Graveyard/App/errorHandler` 中的硬编码灰度为主题变量；错误边界按钮改用 `.btn-primary`。
+- `README.md`：新增《主题系统》章节，说明用法与无障碍注意事项。
+
+验证：已通过本地预览（Vite 本地地址 http://localhost:5173/）手动检查暗/明主题切换与组件样式，无明显 FOUC 或对比度问题。
+
+待验证与下一步：
+- 检查移动端暗色模式下按钮与卡片对比度（WCAG AA）。
+- 如需更细文本层次，考虑新增 `--color-text-subtle` 与 `--color-border-muted`。
+- 如需自定义主题集，再做令牌抽象与配置文件化。

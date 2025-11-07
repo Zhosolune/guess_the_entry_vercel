@@ -203,3 +203,18 @@
 变更摘要：重构主页为 header-contents 结构，新增吸顶顶部栏（居中标题、左侧信息按钮弹窗显示规则、右侧主题切换），移除开始页的标题与规则卡片；在游戏进行页注入顶部栏并将页头统计与重置按钮右对齐，整体内容下移以避让顶部栏。
 原因：按用户要求调整首页与游戏页的 UI 布局与交互，提升一致性与可发现性。
 测试状态：[已测试]
+时间：2025-11-07 15:10
+操作类型：[重构]
+影响文件：
+- src/index.css
+- src/components/TopBar.tsx
+- src/components/GameStart/GameStart.tsx
+- src/components/GameBoard/GameBoard.tsx
+- src/components/Graveyard/Graveyard.tsx
+- src/App.tsx
+- src/utils/errorHandler.ts
+- README.md
+
+变更摘要：统一主题变量与无闪烁切换；将暗色变量改为 `html.dark`；替换组件中的 `text-gray-*` 为主题变量；增强 TopBar ARIA 与进度条主题；更新 README 主题使用指南。
+原因：确保主题切换一致可控、减少 FOUC、提升无障碍与一致性。
+测试状态：[已测试]

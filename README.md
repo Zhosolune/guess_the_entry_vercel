@@ -184,3 +184,30 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 ---
 
 **享受游戏吧！🎯**
+
+## 🎨 主题系统
+
+- 基础：Tailwind 配置为 `darkMode: "class"`，通过在 `html` 添加 `dark` 类启用暗色模式。
+- 设计令牌：在 `theme.config.js` 中集中管理颜色、半径、动效等设计令牌；CSS 根变量在 `src/index.css` 的 `@layer base` 中定义。
+- 变量命名：
+  - `--color-surface` 页面与卡片背景
+  - `--color-border` 边框与分隔线
+  - `--color-text` 正文文字
+  - `--color-text-muted` 次级文字
+  - `--color-primary` 主题主色（含 `hover/active` 变量）
+- 初始加载：`index.html` 内置了预渲染前的主题初始化脚本，基于 `localStorage` 与系统偏好，避免闪烁。
+- 全局状态：`src/theme/ThemeContext.tsx` 提供 `ThemeProvider` 与 `useThemeContext`；现有 `src/hooks/useTheme.ts` 兼容透传。
+- 使用示例：
+  - 组件：用 `text-[var(--color-text)]`、`bg-[var(--color-surface)]`、`border-[var(--color-border)]` 等替代 `text-gray-*`。
+  - 按钮：使用 `.btn-primary`、`.btn-flat`、`.btn-secondary`（均基于变量）。
+  - 切换：在需要的地方调用 `const { isDark, toggleTheme } = useTheme();`
+- 系统偏好：优先使用用户设置（localStorage 保存），未设置时自动跟随系统；用户切换后立即覆盖系统偏好。
+- 无障碍：主题切换按钮使用 `role="switch"` 与 `aria-checked`，确保可访问性。
+
+### 自定义主题
+- 修改 `theme.config.js` 的设计令牌后，`index.css` 根变量会统一生效。
+- 若需新增变量，优先在 `@layer base` 下添加并在组件中使用 `var(--...)` 引用。
+
+### 注意事项
+- 避免在组件中使用硬编码的灰度类（如 `text-gray-600`），统一改用变量驱动。
+- 暗色模式下样式通过 `html.dark` 根变量生效，不再需要组件级 `@apply` 覆盖。

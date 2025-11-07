@@ -70,10 +70,10 @@ export const Graveyard: React.FC<GraveyardProps> = memo(({ graveyard, onClear })
     return (
       <div className="card-flat section text-center sm:mb-0 m-4">
         <div className="flex items-center justify-center mb-4">
-          <Skull className="w-8 h-8 text-gray-400" />
+          <Skull className="w-8 h-8 text-[var(--color-text-muted)]" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-600 mb-2">坟场</h3>
-        <p className="text-gray-500 text-sm">
+        <h3 className="text-lg font-semibold text-[var(--color-text-muted)] mb-2">坟场</h3>
+        <p className="text-[var(--color-text-muted)] text-sm">
           还没有猜错的字符
         </p>
       </div>
@@ -90,7 +90,7 @@ export const Graveyard: React.FC<GraveyardProps> = memo(({ graveyard, onClear })
         {onClear && graveyard.length > 0 && (
           <button
             onClick={onClear}
-            className="flex items-center space-x-1 text-sm text-gray-500 hover:text-red-600 transition-colors duration-200"
+            className="flex items-center space-x-1 text-sm text-[var(--color-text-muted)] hover:text-red-600 transition-colors duration-200"
             title="清空坟场"
           >
             <Trash2 className="w-4 h-4" />
