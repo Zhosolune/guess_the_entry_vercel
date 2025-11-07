@@ -53,16 +53,6 @@ const App: React.FC = memo(() => {
     }
   }, [clearError, handleGuess]);
 
-  // 已移除“重新开始”交互，重置功能不再通过UI暴露
-
-  /**
-   * 处理清空坟场
-   */
-  const handleClearGraveyard = useCallback(() => {
-    // 坟场清空功能暂时不支持
-    console.log('坟场清空功能暂未实现');
-  }, []);
-
   /**
    * 计算游戏进度（不统计标点符号）
    * 基于“位置”统计：仅对非标点字符计算总数与揭示数。
@@ -152,7 +142,6 @@ const App: React.FC = memo(() => {
               <div className="lg:col-span-1 space-y-4">
                 <Graveyard
                   graveyard={gameState.graveyard}
-                  onClear={handleClearGraveyard}
                 />
                 <CorrectPanel guessedChars={gameState.guessedChars} />
               </div>

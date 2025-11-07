@@ -23,7 +23,10 @@ export const designTokens = {
       primaryHover: '#3d62a9',
       primaryActive: '#34528f',
       success: '#4CAF50',
-      accent: '#4772c3'
+      accent: '#4772c3',
+      /** 末项高亮边框（成功/危险） */
+      borderSuccessAccent: '#065f46', // green-500
+      borderDangerAccent: '#dc2626'   // red-300/400
     },
     fonts: {
       base: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",
@@ -47,7 +50,10 @@ export const designTokens = {
       primaryHover: '#3d62a9',
       primaryActive: '#34528f',
       success: '#4CAF50',
-      accent: '#64748b' // slate-500
+      accent: '#64748b', // slate-500
+      /** 末项高亮边框（成功/危险）暗色值 */
+      borderSuccessAccent: '#34d399', // green-400/500
+      borderDangerAccent: '#ef4444'   // red-500
     },
     fonts: {
       base: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",

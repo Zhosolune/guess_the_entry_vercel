@@ -237,6 +237,23 @@
 - 启动本地预览并切换到暗色主题，检查坟场分组标签背景与文字是否符合暗色风格；字块在暗色下略深且仍易读。
 - 验证坟场为空与非空两种状态下的分组间距一致性。
 
+时间：2025-11-07 10:40
+操作类型：[重构]
+影响文件：
+- `src/components/Graveyard/Graveyard.tsx`
+- `src/styles/animations.css`
+
+变更摘要：坟场布局改为行内“分组标签 + 字块”流式排列，新首字母不另起一行；滚动容器滚动条更新为灰色圆角滑块并隐藏滚动槽可见性。
+原因：满足“行内顺延紧密排列、排满后自动换行、以字母标签分隔”的体验，并使滚动条更符合现代风格与暗色主题。
+
+已完成内容：
+- 组件：新增 `renderGroupedStream` 将分组映射扁平化为标签与字块连续序列，容器采用 `graveyard-stream` 行内 wrap 布局；保留排序与分组逻辑不变。
+- 样式：新增 `.graveyard-stream` 与 `.graveyard-group-chip`，使用主题变量适配暗色；为 `.graveyard-scroll` 添加现代滚动条（WebKit 与 Firefox），隐藏轨道背景并采用灰色圆角滑块。
+
+验证建议：
+- 预览 `http://localhost:5174/`，观察坟场字块以标签分隔并行内连续排列；宽度不足时自然换行，标签与字块间距紧凑。
+- 鼠标悬停滚动区域，滚动条滑块颜色稍深；暗色主题下滑块为更深灰色，轨道不可见。
+
 ## 2025-11-06 16:05 — 字体统一/蓝光移除/进度排除标点/缓存绕过
 
 目标：
@@ -533,3 +550,92 @@
 变更摘要：将暗色主题的文本与按钮前景颜色由 `#e5e7eb`（gray-200）调暗为 `#d1d5db`（gray-300），降低暗色下的眩光，同时保持良好可读性。
 原因：用户反馈暗色文本偏亮，影响观感与舒适度。
 测试状态：[已测试] 本地预览验证暗色下对比度与阅读舒适度正常。
+## 2025-11-07 11:25 — 坟场“清空”功能重构为首字母标签显隐
+
+目标：
+- 将原有“清空”功能替换为“首字母标签显示/隐藏”功能；默认不显示，点击图标按钮后显示，再次点击隐藏。
+- 保持现有流式布局与滚动不变，标签采用半透明背景与小字号（约正文 80%），具备平滑过渡。
+
+改动：
+- `src/components/Graveyard/Graveyard.tsx`
+  - 移除 `onClear` 属性与清空按钮。
+  - 新增本地状态 `showLabels` 与切换函数 `toggleLabels()` 控制首字母标签显隐（函数级注释已添加）。
+  - 将 `renderGroupedStream(map, withLabels)` 支持按状态渲染标签 Chip；默认隐藏，仅在 `withLabels=true` 时插入。
+  - 标题处新增图标按钮（字母“A”）用于显隐切换，`aria-pressed` 标记状态。
+- `src/styles/animations.css`
+  - `.graveyard-stream` 间距由 `0.5rem` 调整为 `0.2rem`，更紧凑。
+  - `.graveyard-group-chip` 使用半透明背景（浅色 `rgba(255,255,255,0.6)`；暗色下 `rgba(17,24,39,0.5)`），字体 `0.8rem`，加入 `chipFadeIn` 淡入动画与过渡。
+  - 新增 `.graveyard-icon-btn` 样式，完善 hover/active 态与按下状态的反馈。
+- `src/App.tsx`
+  - 移除已废弃的 `handleClearGraveyard` 与 `onClear` 传参，保持 `Graveyard` 正常渲染。
+
+验证建议：
+- 启动预览 `http://localhost:5174/`，点击右上角“A”图标按钮：首次点击显示各组标签（A-Z 与 `#`），再次点击隐藏。
+- 标签淡入显示，背景半透明且与内容区分明显；暗色主题下标签背景明度降低但清晰可读。
+- 流式布局保持紧凑，自动换行行为不受影响；滚动条样式与之前的现代风格保持一致。
+
+性能说明：
+- 拼音首字母转换使用 `tiny-pinyin`，仅在分组计算时用 `useMemo` 缓存结果，避免重复转换与不必要 DOM 操作。
+- 标签显隐通过条件渲染实现，状态切换同步更新；渲染成本随组数线性，不对主交互造成负担。
+
+后续可选优化：
+- 若需要标签隐藏也保留占位以实现“隐藏时平滑渐隐/显示时渐显”的双向过渡，可将 Chip 常驻 DOM 并以 `opacity/visibility` 控制显隐（当前实现为显式插入/移除，视觉以淡入为主）。
+- 图标可替换为字体图标库（Font Awesome/Material Icons），现版本使用简洁文字“A”以减少依赖。
+### 2025-11-07 已猜对字符区域：首字母分组与标签显隐功能
+
+本次更新在 `src/components/CorrectPanel/CorrectPanel.tsx` 中实现与坟场区域一致的首字母分组与标签显隐功能：
+
+- 逻辑实现：
+  - 英文按首字母（A-Z）分组；中文字符基于 `tiny-pinyin` 的拼音首字母分组；数字与符号归入 `#` 组。
+  - 组内排序：中文按拼音排序，其他按不区分大小写的字符排序。
+  - 流式渲染：分组标签 Chip 与字符块按行内顺序连续排布，自动换行。
+- 交互一致性：
+  - 新增“A”图标按钮切换标签显隐，语义 `aria-pressed`；复用 `.graveyard-icon-btn` 的交互与主题适配效果。
+  - 标签样式复用 `.graveyard-group-chip`，实现半透明主题适配与自然融入布局。
+- 代码位置：
+  - `src/components/CorrectPanel/CorrectPanel.tsx`：分组逻辑、排序、渲染与切换状态。
+
+验证建议：
+- 在本地预览 `http://localhost:5174/` 下，切换浅色/深色主题，点击“A”按钮验证首字母标签显隐与背景/文字颜色的平滑过渡。
+- 在字符种类包含中文、英文、数字与符号时，确认分组与排序符合预期（中文按拼音、其他按字符）。
+
+性能与可维护性：
+- 当前实现按需渲染，无额外复杂状态；在字符数较多时仍保持轻量。
+- 若未来需要在多个面板复用该分组逻辑，可抽取成 `utils/groupByInitial.ts`，但现阶段为避免过度抽象，选择最小实现。
+### 2025-11-07 首字母标签尺寸对齐与末项高亮
+
+改动内容：
+- `src/styles/animations.css`：
+  - `.graveyard-group-chip` 统一宽高为 `1.5rem`，圆角 `0.2rem`，与字块尺寸一致；默认 `visibility: hidden` 保留占位，`.labels-visible` 时可见，避免显隐造成布局抖动。
+  - 为 `.graveyard-char.last-added` 与 `.correct-char.last-added` 增加主题色边框（红/绿），适配明暗主题；默认字块使用透明边框以保留空间并结合 `box-sizing: border-box` 防止抖动。
+- `src/components/Graveyard/Graveyard.tsx`：始终渲染分组标签 Chip，通过 CSS 控制显隐；以 `graveyard` 最末元素作为当前高亮目标，赋予 `last-added` 类。
+- `src/components/CorrectPanel/CorrectPanel.tsx`：通过 `useRef + useEffect` 比较 `guessedChars` 增量，识别最新加入字符并赋予 `last-added` 类；始终渲染分组标签 Chip 保留占位。
+
+验证建议：
+- 切换标签显隐，检查字块对齐是否保持不变；检查坟场与已猜对区域的最新字块高亮是否正确随新输入迁移。
+- 浅色/深色主题下查看边框颜色与背景对比度是否足够；必要时可调整颜色变量。
+
+后续可选改进：
+- 将分组与高亮逻辑抽取为 `utils/groupByInitial.ts` 与 `hooks/useLastAdded.ts` 以供复用；当前为保持最小实现，逻辑内联于组件。
+
+## 2025-11-07 16:59 — 边框颜色使用主题变量统一管理
+
+目标：将“末项高亮”边框颜色与成功横幅边框颜色从硬编码值改为主题变量驱动，适配明暗主题并提升维护性。
+
+改动与文件：
+- `src/index.css`
+  - 在 `@layer base :root` 增加：`--color-border-success-accent: #10b981`、`--color-border-danger-accent: #fca5a5`；在 `html.dark` 增加对应暗色值：`#34d399`、`#ef4444`。
+- `src/styles/animations.css`
+  - 将 `.graveyard-char.last-added` 与 `.correct-char.last-added` 的 `border-color` 替换为 `var(--color-border-danger-accent)` 与 `var(--color-border-success-accent)`；暗色覆盖统一改为变量引用。
+  - 将 `.success-banner` 的 `border-color` 改为 `var(--color-border-success-accent)`；在暗色媒体查询中同样使用变量。
+- `theme.config.js`
+  - 设计令牌中新增 `borderSuccessAccent` 与 `borderDangerAccent`，与 CSS 变量对应，便于后续文档与主题扩展保持一致。
+
+验证建议：
+- 打开本地预览 `http://localhost:5174/`，在浅/暗色主题下分别触发：
+  - 坟场新增字符：最新字块出现红色主题变量边框；再新增新字块，上一个高亮清除；暗色下边框颜色更深但一致。
+  - 猜对字符：最新字块出现绿色主题变量边框；成功横幅边框同为变量驱动；暗色下颜色同步更深。
+- 检查控制台无样式错误，切换主题无闪烁，边框颜色随主题变化。
+
+后续可选：
+- 若需要在 Tailwind 层面使用，考虑添加 `border-[var(--color-border-success-accent)]` 等实用类的封装或抽象组件。

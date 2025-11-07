@@ -66,8 +66,6 @@
   position: relative;
 }
 
-/* 移除蓝色扫光效果，避免遮罩动画的额外光效干扰 */
-
 /* 坟场字符样式 */
 .graveyard-char {
   position: relative;
@@ -77,13 +75,14 @@
   width: 1.5rem;
   height: 1.5rem;
   background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-  /* border: 2px solid #fca5a5; */
+  border: 2px solid transparent; /* 预留边框空间，避免切换时版式抖动 */
   border-radius: 0.2rem;
   font-size: 1rem;
   font-weight: 400;
   color: #dc2626;
   transition: all 0.2s ease;
   cursor: pointer;
+  box-sizing: border-box; /* 保证边框不改变总体尺寸 */
 }
 
 .graveyard-char:hover {
@@ -100,12 +99,13 @@
   width: 1.5rem;
   height: 1.5rem;
   background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-  /* border: 2px solid #10b981; */
+  border: 2px solid transparent; /* 预留边框空间，避免切换时版式抖动 */
   border-radius: 0.2rem;
   font-size: 1rem;
   font-weight: 400;
   color: #065f46;
   transition: all 0.2s ease;
+  box-sizing: border-box; /* 保证边框不改变总体尺寸 */
 }
 
 .correct-char:hover {
@@ -314,13 +314,101 @@ html.dark .correct-char:hover {
   color: var(--color-text-muted);
   margin-bottom: 0.2rem; /* 标签与内容间距 */
   margin-top: 0.2rem; /* 标签与内容间距 */
-  /* padding: 0.25rem 0.25rem; 适度留白增强可读性 */
 }
 
 .graveyard-group-content {
   display: flex;
   flex-wrap: wrap;
   gap: 0.2rem; /* 分组内字块间距 */
+}
+
+/* 坟场行内流布局：分组标签 + 字块连续排列，排满后自动换行 */
+.graveyard-stream {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem; /* 标签与字块之间的紧凑间距 */
+}
+
+.graveyard-group-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem; /* 与字块等宽 */
+  height: 1.5rem; /* 与字块等高 */
+  padding: 0; /* 统一尺寸，去除额外内边距 */
+  border-radius: 0.2rem; /* 与字块圆角一致 */
+  backdrop-filter: blur(2px);
+  color: var(--color-text-muted);
+  font-size: 0.85rem; /* 稍小字号以区分标签 */
+  font-weight: 500;
+  transition: opacity 0.18s ease, transform 0.18s ease, background-color 0.18s ease;
+  animation: chipFadeIn 0.18s ease;
+  box-sizing: border-box; /* 保证与字块尺寸一致 */
+}
+
+@keyframes chipFadeIn {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* 标签显隐状态下的微动效（可选类） */
+/* 默认隐藏但保留占位，保证显隐切换时整体布局不抖动 */
+.graveyard-stream .graveyard-group-chip {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.graveyard-stream.labels-visible .graveyard-group-chip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 坟场首字母标签切换图标按钮 */
+.graveyard-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--color-text);
+  transition: background-color var(--transition), color var(--transition);
+}
+
+.graveyard-icon-btn:hover {
+  color: var(--color-primary);
+}
+
+/* 激活（按下）状态：适配明暗主题的背景色差异 */
+.graveyard-icon-btn[aria-pressed="true"] {
+  background: var(--color-btn-bg-hover);
+  color: var(--color-btn-fg);
+}
+
+
+.graveyard-icon-btn .icon-letter {
+  font-weight: 500;
+  font-size: 1rem;
+  line-height: 1rem;
+}
+
+/* 末项高亮：为最新进入的字块添加主题色边框 */
+.graveyard-char.last-added {
+  border-color: var(--color-border-danger-accent); /* 使用主题变量统一管理 */
+}
+
+.correct-char.last-added {
+  border-color: var(--color-border-success-accent); /* 使用主题变量统一管理 */
+}
+
+html.dark .graveyard-char.last-added {
+  border-color: var(--color-border-danger-accent); /* 暗色覆盖由变量控制 */
+}
+
+html.dark .correct-char.last-added {
+  border-color: var(--color-border-success-accent); /* 暗色覆盖由变量控制 */
 }
 
 /* 暗色模式支持 */
@@ -342,7 +430,41 @@ html.dark .correct-char:hover {
   }
   .success-banner {
     background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
-    border-color: #10b981;
+    border-color: var(--color-border-success-accent);
     box-shadow: 0 6px 18px rgba(16, 185, 129, 0.25);
   }
+}
+
+/* 现代滚动条样式（灰色圆角滑块，隐藏滚动槽可见性） */
+.graveyard-scroll {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #9ca3af transparent; /* thumb 与 track */
+}
+
+.graveyard-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.graveyard-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.graveyard-scroll::-webkit-scrollbar-thumb {
+  background-color: #9ca3af; /* gray-400 */
+  border-radius: 8px;
+  border: 2px solid transparent; /* 通过透明边增强圆角视觉 */
+  background-clip: padding-box;
+}
+
+.graveyard-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: #6b7280; /* gray-500，悬停稍深 */
+}
+
+html.dark .graveyard-scroll {
+  scrollbar-color: #6b7280 transparent; /* 暗色下更深灰 */
+}
+
+html.dark .graveyard-scroll::-webkit-scrollbar-thumb {
+  background-color: #6b7280; /* gray-500 */
 }

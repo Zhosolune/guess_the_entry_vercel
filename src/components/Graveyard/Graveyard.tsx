@@ -1,10 +1,9 @@
-import React, { useMemo, memo } from 'react';
-import { Skull, Trash2 } from 'lucide-react';
+import React, { useMemo, memo, useState, useCallback } from 'react';
+import { Skull } from 'lucide-react';
 import Pinyin from 'tiny-pinyin';
 
 interface GraveyardProps {
   graveyard: string[];
-  onClear?: () => void;
 }
 
 /**
@@ -12,7 +11,7 @@ interface GraveyardProps {
  * 显示所有被猜错的字符，提供清空功能
  * 使用React.memo优化渲染性能
  */
-export const Graveyard: React.FC<GraveyardProps> = memo(({ graveyard, onClear }) => {
+export const Graveyard: React.FC<GraveyardProps> = memo(({ graveyard }) => {
   // 使用useMemo缓存计算结果，避免重复计算
   const uniqueChars = useMemo(() => {
     return Array.from(new Set(graveyard));
@@ -66,6 +65,58 @@ export const Graveyard: React.FC<GraveyardProps> = memo(({ graveyard, onClear })
     return map;
   }, [uniqueChars]);
 
+  /**
+   * 将分组映射渲染为“流式布局”序列：分组标签 Chip + 该分组的所有字块。
+   * 行内顺排，容器自动换行；保持按首字母分隔但不强制每组另起一行。
+   * @param map - 分组后的字符映射
+   * @param withLabels - 是否显示首字母标签（通过 CSS 可见性控制，始终保留占位）
+   * @returns React 节点数组（标签与字块连续排布）
+   */
+  const renderGroupedStream = (map: Map<string, string[]>, withLabels: boolean): React.ReactNode[] => {
+    const order = [
+      ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)),
+      '#',
+    ];
+    const nodes: React.ReactNode[] = [];
+    // 末项高亮：取坟场数组的最后一个元素作为当前高亮目标
+    const lastWrongChar = graveyard.length > 0 ? graveyard[graveyard.length - 1] : null;
+    order.forEach((groupKey) => {
+      const items = map.get(groupKey) || [];
+      if (items.length === 0) return;
+      if (withLabels) {
+        nodes.push(
+          <span className="graveyard-group-chip" key={`chip-${groupKey}`} aria-label={`组 ${groupKey}`}>
+            {groupKey}
+          </span>
+        );
+      }
+      items.forEach((char, index) => {
+        const isLast = lastWrongChar !== null && char === lastWrongChar;
+        nodes.push(
+          <span
+            key={`${groupKey}-${char}-${index}`}
+            className={`graveyard-char${isLast ? ' last-added' : ''}`}
+            title={char}
+          >
+            {char}
+          </span>
+        );
+      });
+    });
+    return nodes;
+  };
+
+  /**
+   * 标签显示切换状态
+   * 控制是否显示分组首字母标签，默认不显示。
+   * 提供按钮交互以在显示/隐藏之间切换。
+   * @returns 无返回值
+   */
+  const [showLabels, setShowLabels] = useState<boolean>(false);
+  const toggleLabels = useCallback((): void => {
+    setShowLabels((prev) => !prev);
+  }, []);
+
   if (graveyard.length === 0) {
     return (
       <div className="card-flat section text-center sm:mb-0 mx-4">
@@ -87,49 +138,23 @@ export const Graveyard: React.FC<GraveyardProps> = memo(({ graveyard, onClear })
           <Skull className="w-5 h-5 mr-2 text-red-500" />
           坟场
         </h3>
-        {onClear && graveyard.length > 0 && (
-          <button
-            onClick={onClear}
-            className="flex items-center space-x-1 text-sm text-[var(--color-text-muted)] hover:text-red-600 transition-colors duration-200"
-            title="清空坟场"
-          >
-            <Trash2 className="w-4 h-4" />
-            <span>清空</span>
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={toggleLabels}
+          aria-pressed={showLabels}
+          title={showLabels ? '隐藏首字母标签' : '显示首字母标签'}
+          className="graveyard-icon-btn"
+        >
+          <span className="icon-letter">A</span>
+        </button>
       </div>
 
-      {/* 按首字母/拼音分组显示（A-Z；数字与符号归 "#"） */}
-      <div className="graveyard-scroll">
-        {[
-          ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)),
-          '#',
-        ].map((groupKey) => {
-          const items = groupedMap.get(groupKey) || [];
-          if (items.length === 0) return null;
-          return (
-            <div className="graveyard-group" key={`group-${groupKey}`}>
-              <div className="graveyard-group-label">{groupKey}</div>
-              <div className="graveyard-group-content">
-                {items.map((char, index) => (
-                  <span key={`${groupKey}-${char}-${index}`} className="graveyard-char" title={char}>
-                    {char}
-                  </span>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* 提示信息 */}
-      {uniqueChars.length > 30 && (
-        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-sm text-yellow-800">
-            💡 提示：坟场字符较多，建议换个思路继续猜测！
-          </p>
+      {/* 行内“分组标签 + 字块”流式布局（A-Z；数字与符号归 "#"） */}
+      <div className="mt-4 graveyard-scroll">
+        <div className={`graveyard-stream ${showLabels ? 'labels-visible' : ''}`}>
+          {renderGroupedStream(groupedMap, showLabels)}
         </div>
-      )}
+      </div>
     </div>
   );
 });

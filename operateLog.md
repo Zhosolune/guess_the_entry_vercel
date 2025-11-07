@@ -3,6 +3,15 @@
 影响文件：
 - src/constants/game.constants.ts
 
+时间：2025-11-07 10:40
+操作类型：[重构]
+影响文件：
+- `src/components/Graveyard/Graveyard.tsx`
+- `src/styles/animations.css`
+变更摘要：坟场由纵向分组改为行内“分组标签+字块”流式布局，自动换行；滚动条更新为灰色圆角滑块，隐藏滚动槽。
+原因：提升密度与阅读连续性，优化暗色主题与现代滚动条视觉一致性。
+测试状态：[已测试]
+
 变更摘要：统一 GameCategory 类型为中文枚举，调整 CATEGORIES 为中文键，消除类型不一致导致的潜在诊断问题。
 原因：常量使用英文键与类型文件使用中文枚举不一致，可能引发 IDE/TS 误诊与后续数据不一致。
 测试状态：[已测试]
@@ -218,3 +227,42 @@
 变更摘要：统一主题变量与无闪烁切换；将暗色变量改为 `html.dark`；替换组件中的 `text-gray-*` 为主题变量；增强 TopBar ARIA 与进度条主题；更新 README 主题使用指南。
 原因：确保主题切换一致可控、减少 FOUC、提升无障碍与一致性。
 测试状态：[已测试]
+时间：2025-11-07 11:25
+操作类型：[重构]
+影响文件：
+- src/components/Graveyard/Graveyard.tsx
+- src/styles/animations.css
+- src/App.tsx
+变更摘要：将坟场“清空”功能重构为“首字母标签显示”功能；新增图标按钮（字母“A”）控制标签显隐，标签默认隐藏；标签采用半透明背景与小字号（约80%），加入淡入过渡动画；优化按钮 hover/active 态反馈。
+原因：满足需求“按需显示首字母标签、默认不影响布局”，提升可读性与交互一致性，同时避免不必要的 DOM 操作。
+测试状态：[已测试]
+## 2025-11-07 16:44
+- 时间：2025-11-07 16:44
+- 操作类型：新增
+- 影响文件：
+  - src/components/CorrectPanel/CorrectPanel.tsx
+- 变更摘要：为“已猜对字符”区域新增首字母分组与标签显隐功能，交互与坟场区域保持一致；复用 `.graveyard-group-chip` 与 `.graveyard-icon-btn` 样式。
+- 原因：提升信息可读性与界面一致性，便于按首字母定位已猜对字符。
+- 测试状态：已测试（本地预览 http://localhost:5174/，浏览器无错误提示）
+时间：2025-11-07 16:59
+操作类型：[修改]
+影响文件：
+- src/index.css
+- src/styles/animations.css
+- theme.config.js
+
+变更摘要：新增主题变量 `--color-border-success-accent` 与 `--color-border-danger-accent`；将“末项高亮”边框与成功横幅的硬编码颜色替换为上述变量。暗色模式通过 `html.dark` 覆盖变量自动生效。
+原因：边框颜色统一用主题变量管理，提升明暗主题一致性与后续维护可控性。
+测试状态：[已测试]（本地预览 http://localhost:5174/，浏览器无错误）
+## 2025-11-07 16:52
+- 时间：2025-11-07 16:52
+- 操作类型：修改
+- 影响文件：
+  - src/styles/animations.css
+  - src/components/Graveyard/Graveyard.tsx
+  - src/components/CorrectPanel/CorrectPanel.tsx
+- 变更摘要：
+  - 将首字母标签 `.graveyard-group-chip` 的宽高统一为 1.5rem，与字块一致；通过保留占位（visibility 控制）确保显隐不影响整体对齐。
+  - 为最新进入的字块添加主题色边框高亮（坟场红、已猜对绿），新字块加入时自动清除上一项高亮。
+- 原因：保证显隐切换不影响布局整齐度，提升交互反馈的可感知性。
+- 测试状态：已测试（本地预览 http://localhost:5174/，浏览器无错误提示）

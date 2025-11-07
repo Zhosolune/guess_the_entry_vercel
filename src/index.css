@@ -25,6 +25,9 @@
     --color-primary-active: #34528f; /* 深20% */
     --color-success: #4CAF50;
     --color-accent: #4772c3;       /* 统一强调色为主题色 */
+    /* 边框高亮（末项高亮/成功/危险） */
+    --color-border-success-accent: #065f46; /* green-500：成功高亮边框 */
+    --color-border-danger-accent: #dc2626;  /* red-300/400：危险高亮边框 */
 
     /* 间距与圆角 */
     --section-padding: 1rem;       /* 移动端基准 */
@@ -58,6 +61,9 @@
     --color-btn-bg-hover: #374151; /* gray-700 */
     --color-btn-border: #334155;   /* slate-700 */
     --color-accent: #64748b;       /* slate-500 */
+    /* 边框高亮（暗色模式） */
+    --color-border-success-accent: #34d399; /* green-400/500：成功高亮边框 */
+    --color-border-danger-accent: #ef4444;  /* red-500：危险高亮边框 */
   }
 }
 
