@@ -298,6 +298,26 @@
 - `.form-textarea:focus`：`border-color: var(--color-primary); box-shadow: 0 0 3px rgba(71,114,195,0.3);`
 - 暗色模式：移除 `focus:ring-indigo-400 focus:border-indigo-400`，统一由基础焦点规则驱动主题色交互。
 
+时间：2025-11-10 10:45
+操作类型：[修改]
+影响文件：
+- `src/hooks/useKeyboard.ts`
+- `src/components/QuickRefDrawer.tsx`
+- `src/components/GameBoard/GameBoard.tsx`
+
+变更摘要：
+- 构建修复：移除未使用的 `@ts-expect-error`，改为使用标准 `event.isComposing` 检测中文输入法组合键，解决 `TS2578: Unused '@ts-expect-error'` 构建错误。
+- 抽屉高度调整（PC）：将速查表抽屉内容区最大高度改为 `max-h-[65vh] md:max-h-[75vh]`，提升桌面端可视面积。
+- 按钮布局与样式：将“提示”和“速查表”改为纯图标按钮（灯泡、文档），并移动到文本区外部下方，水平居中显示；保持按钮无文字，仅 `aria-label`/`title` 助于无障碍。
+
+验证结果：
+- `npm run build`：构建通过；Vite 打包成功。
+- 预览：`http://localhost:5173/` 无浏览器错误；提示按钮与速查表图标按钮位于文本区外部下方居中；点击速查表按钮可正确开合底部抽屉；PC 端抽屉高度明显提升。
+
+注意与后续建议：
+- 如需提示内容展示，可在按钮点击后于顶部栏或轻量弹出层展示 `hintPreview.text`，避免破坏简洁布局。
+- 抽屉动画当前为 `translate-y` 过渡，后续可根据需求加重阴影与边框强调，或在移动端将高度降低至 `60vh` 增强握持区域可见性。
+
 预览与验证：
 - 地址：`http://localhost:5173/`
 - 结果：无控制台报错；“开始游戏”“猜测”按钮保持主题色；徽章与输入框在焦点/暗色模式下交互一致。
@@ -704,3 +724,69 @@
 
 注意：
 - 如需替代提示（非弹窗），后续可在输入框下方加入轻微文本提示区域；当前遵循最小实现不增加额外UI。
+### 2025-11-07 修复胜利后计时未停止问题
+
+- 根因分析：`useTimestampTimer` 在停止后 `totalSeconds` 归零，导致若直接停止计时器，UI 显示为 `00:00`，看起来像“继续未停止计时/时间异常”。
+- 变更内容：
+  - 在 `src/App.tsx` 添加 `finalSeconds` 状态，用于在胜利瞬间冻结最终秒数用于展示。
+  - 在胜利态的 `useEffect` 中先记录当前秒数到 `finalSeconds`，再调用 `stopTimer()` 停止计时，避免显示归零。
+  - `formattedTime` 计算改为：胜利态显示 `finalSeconds`，其他态显示实时 `time`（使用 `formatTime` 保持格式统一）。
+  - 在开始新局与“再来一局”时清空 `finalSeconds` 并重置计时器，确保重新计时正常。
+- 验证步骤：
+  - 启动本地服务：`npm run dev`。
+  - 进行一局游戏直至胜利，观察顶部时间停止增长，显示冻结的最终用时。
+  - 点击“再来一局”或从开始界面重新开始，时间从零重新累加。
+  - 预览与控制台均无错误输出。
+- 影响评估：仅限 `App.tsx` 的展示逻辑，未改动计时 hook 的行为，风险低；与此前移除胜利动画、提示弹窗的变更兼容。
+### 2025-11-07 胜利态时间显示为 0 的问题修复（二次修正）
+
+- 问题表现：胜利后计时未停止，改为显示 0；最终结算耗时为 0。
+- 根因定位：在 `App.tsx` 中用于冻结时间的 effect 依赖包含 `time`。停止计时器后 `useTimestampTimer.totalSeconds` 变为 0，effect 二次执行将 `finalSeconds` 覆盖为 0。
+- 修复方案：将 effect 逻辑改为仅在首次进入胜利态且 `finalSeconds === null` 时设置冻结值并停止计时，避免后续依赖变化覆盖。
+- 变更要点：
+  - `useEffect` 条件：`gameState.gameStatus === 'victory' && finalSeconds === null`。
+  - 依赖调整：保留 `time` 以获取当前秒数，但通过空值判断避免覆盖；添加注释解释原因与行为。
+- 验证：本地预览胜利后显示为冻结的最终用时（非 0），点击“再来一局”后重新开始计时，未见浏览器与终端错误。
+### 2025-11-07 胜利结算组件用时为 0 的问题修复（三次修正）
+
+- 问题表现：顶部栏时间正确，但胜利结算组件仍显示 0。
+- 根因定位：`GameBoard` 的 `formattedTime` 基于 `props.gameTime` 计算；`App.tsx` 传入的是实时 `time`，在停止后为 0。
+- 修复方案：在 `App.tsx` 向 `GameBoard` 传递 `finalSeconds`（冻结的秒数）于胜利态，否则传递实时 `time`。
+- 验证：胜利后结算“用时 mm:ss”显示与顶部一致，且不为 0；重开后重新计时正常。
+### 2025-11-07 新增提示入口与服务占位
+
+- UI 变更：在 `GameBoard` 输入框左侧新增“灯泡”按钮，class 复用顶部栏的简洁样式；点击触发 `handleHintClick`。
+- 服务与接口：新增 `src/services/hints.ts`，定义 `Hint`、`HintContext`、`HintService` 接口，并提供占位 `requestHint`（返回文案提示）。
+- 接线策略：`handleHintClick` 构造 `HintContext` 并调用 `requestHint`，将结果保存在 `hintPreview`，不做弹窗展示，后续可在静态区域呈现。
+- 验证：预览无控制台错误，按钮显示正常；不影响现有游戏流程。
+
+## 2025-11-10 — UI 重构：提示按钮位置与速查表抽屉
+
+目标：将提示图标按钮移到文本区下方，并新增“速查表”按钮用于抽屉式显隐坟场与已猜对字符，默认不显示，点击按钮或抽屉右上角关闭按钮切换显隐。
+
+改动文件与要点：
+- `src/components/GameBoard/GameBoard.tsx`
+  - 移除输入框左侧的提示按钮，将提示按钮移动到正文文本区下方的操作行（与“速查表”按钮并列）。
+  - 新增 `onToggleQuickRef?: () => void` 属性，用于触发速查表抽屉的显隐切换。
+  - 保留最小可用实现：点击提示按钮调用 `handleHintClick`，将占位 hint 结果写入本地状态但不弹窗显示。
+- `src/components/QuickRefDrawer.tsx`
+  - 新增速查表抽屉组件，底部固定定位，通过 `transform` 进行显隐过渡，默认隐藏。
+  - 参数：`isOpen`, `onClose`, `graveyard: string[]`, `guessedChars: Set<string>`。
+  - 内容：左侧渲染坟场 `Graveyard`，右侧渲染“已猜对字符” `CorrectPanel`；提供右上角 `X` 关闭按钮。
+- `src/App.tsx`
+  - 新增 `isQuickRefOpen` 状态用于控制抽屉显隐；在 `GameBoard` 处传入 `onToggleQuickRef={() => setIsQuickRefOpen(v => !v)}`。
+  - 移除右侧静态面板（坟场/已猜对字符），统一改为底部抽屉显示；在 `playing/victory` 状态下渲染 `QuickRefDrawer`。
+  - 在 `onRestart` 中同步关闭抽屉以保持初始界面整洁。
+
+设计说明与原因：
+- 根据用户的美观性要求，提示入口从输入框左侧迁移到文本阅读区下方，避免破坏输入区的简洁性。
+- “速查表”采用抽屉显隐方式统一坟场与已猜对字符，默认隐藏减少干扰；需要时点击按钮或 `X` 关闭即可切换。
+
+验证状态：
+- 已尝试启动本地预览，但 `npm run build` 因 `src/hooks/useKeyboard.ts` 存在未使用的 `@ts-expect-error` 报错而失败；`npm run dev` 在当前环境未常驻。
+- 受环境限制暂未打开预览链接；建议在本地运行 `npm run dev` 进行交互验证（重点：提示按钮位置、速查表抽屉显隐、关闭按钮工作、右侧静态面板已移除）。
+
+后续建议（可选）：
+- 在抽屉中为坟场与已猜对字符增加统计信息（数量/占比）。
+- 为“速查表”按钮提供未读提示（新字块高亮时在按钮上显示微徽标）。
+- 若提示功能扩展，可在抽屉顶部加入“最近提示”区域统一展示。

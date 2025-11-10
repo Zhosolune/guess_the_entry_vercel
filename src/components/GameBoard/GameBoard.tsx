@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo, memo } from 'react';
 import { EntryData, GameStatus } from '../../types/game.types';
 import { useKeyboard } from '../../hooks/useKeyboard';
 import { toast } from 'sonner';
+import { requestHint, Hint, HintContext } from '../../services/hints';
 
 interface GameBoardProps {
   entryData: EntryData;
@@ -19,6 +20,10 @@ interface GameBoardProps {
    * 在胜利后替代输入框显示，点击后返回初始界面
    */
   onRestart?: () => void;
+  /**
+   * 速查表抽屉显隐切换（由上层控制）
+   */
+  onToggleQuickRef?: () => void;
 }
 
 /**
@@ -36,7 +41,8 @@ export const GameBoard: React.FC<GameBoardProps> = memo(({
   error,
   gameTime,
   gameStatus,
-  onRestart
+  onRestart,
+  onToggleQuickRef
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [showVictory, setShowVictory] = useState(false);
@@ -44,6 +50,7 @@ export const GameBoard: React.FC<GameBoardProps> = memo(({
   const [newlyRevealed, setNewlyRevealed] = useState<string[]>([]);
   // 记录已触发过揭示动画的字符，避免重复动画
   const [animatedChars, setAnimatedChars] = useState<Set<string>>(new Set());
+  const [hintPreview, setHintPreview] = useState<Hint | null>(null);
 
   // 使用useMemo缓存计算结果
   const progress = useMemo(() => {
@@ -150,6 +157,31 @@ export const GameBoard: React.FC<GameBoardProps> = memo(({
 
   // 使用键盘Hook
   useKeyboard(handleKeyboardInput);
+
+  /**
+   * 处理提示按钮点击
+   * 目前作为占位逻辑：构造 HintContext 并调用 requestHint，
+   * 将结果保存在本地状态以便后续实现非侵入式展示。
+   * 
+   * @returns void 不返回值
+   * @throws 无主动抛出；如外部服务异常，仅在控制台记录错误
+   */
+  const handleHintClick = useCallback(async (): Promise<void> => {
+    try {
+      const ctx: HintContext = {
+        entryData: entryData,
+        guessedChars: guessedChars,
+        revealedChars: revealedChars,
+        attempts: attempts
+      };
+      const hint = await requestHint(ctx);
+      setHintPreview(hint);
+      // 暂不使用弹窗提示，后续可在界面静态区域展示
+      // console.log('Hint received:', hint);
+    } catch (err) {
+      console.error('提示请求失败:', err);
+    }
+  }, [entryData, guessedChars, revealedChars, attempts]);
 
   /**
    * 渲染遮盖/揭示的内容为统一的字符块
@@ -265,7 +297,7 @@ export const GameBoard: React.FC<GameBoardProps> = memo(({
       {/* 输入区域 / 胜利庆祝与再来一局 */}
       {gameStatus !== 'victory' ? (
         <form onSubmit={handleSubmit} className="space-y-4 mb-4">
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-center">
             <input
               type="text"
               value={inputValue}
@@ -278,7 +310,7 @@ export const GameBoard: React.FC<GameBoardProps> = memo(({
             <button
               type="submit"
               disabled={isLoading || !inputValue}
-              className="btn-primary"
+              className="btn-primary btn-compact-mobile"
             >
               确认
             </button>
@@ -309,7 +341,42 @@ export const GameBoard: React.FC<GameBoardProps> = memo(({
           {renderMaskedContent(encyclopediaContent)}
         </div>
         </div>
-        
+      </div>
+
+      {/* 文本区外部下方操作区：水平居中图标按钮 */}
+      <div className="mt-4 flex justify-center items-center gap-6">
+        <button
+          type="button"
+          aria-label="提示"
+          title="提示"
+          onClick={handleHintClick}
+          className="inline-flex items-center p-2 text-[var(--color-text-muted)] hover:text-[var(--color-primary)] focus:outline-none gap-1"
+        >
+          {/* 灯泡图标 */}
+          <svg className="w-5 h-5" viewBox="0 0 32 32" fill="currentColor">
+            <path d="M11 24h10v2H11z"></path>
+            <path d="M13 28h6v2h-6z"></path>
+            <path d="M16 2A10 10 0 0 0 6 12a9.19 9.19 0 0 0 3.46 7.62c1 .93 1.54 1.46 1.54 2.38h2c0-1.84-1.11-2.87-2.19-3.86A7.2 7.2 0 0 1 8 12a8 8 0 0 1 16 0a7.2 7.2 0 0 1-2.82 6.14c-1.07 1-2.18 2-2.18 3.86h2c0-.92.53-1.45 1.54-2.39A9.18 9.18 0 0 0 26 12A10 10 0 0 0 16 2z"></path>
+          </svg>
+          提示
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onToggleQuickRef && onToggleQuickRef()}
+          className="inline-flex items-center p-2 text-[var(--color-text-muted)] hover:text-[var(--color-primary)] focus:outline-none gap-1"
+          title="速查表"
+          aria-label="速查表"
+        >
+          {/* 文档/记事本图标 */}
+          <svg className="w-5 h-5" viewBox="0 0 32 32" fill="currentColor">
+            <path d="M26 2H8a2 2 0 0 0-2 2v4H4v2h2v5H4v2h2v5H4v2h2v4a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 26H8v-4h2v-2H8v-5h2v-2H8v-5h2V8H8V4h18z"></path>
+            <path d="M14 8h8v2h-8z"></path>
+            <path d="M14 15h8v2h-8z"></path>
+            <path d="M14 22h8v2h-8z"></path>
+          </svg>
+          速查表
+        </button>
       </div>
     </div>
   );

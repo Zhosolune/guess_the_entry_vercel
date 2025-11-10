@@ -19,8 +19,10 @@ export const useKeyboard = (onGuess: (char: string) => void) => {
     }
 
     // 中文输入法组合键时不拦截
-    // @ts-expect-error 标准KeyboardEvent可能不包含isComposing
-    if ((event as any).isComposing) return;
+    // 使用标准 KeyboardEvent 的 isComposing 进行组合输入检测
+    if (event.isComposing) {
+      return;
+    }
 
     const key = event.key;
     

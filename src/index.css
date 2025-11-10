@@ -104,10 +104,10 @@
     align-items: center;
     justify-content: center;
     gap: 0.375rem;
-    padding: 0.625rem 1rem;
-    background: var(--color-btn-bg);
+    padding: 0.625rem;
+    background: transparent;
     color: var(--color-btn-fg);
-    border: 1px solid var(--color-btn-border);
+    border: none;
     border-radius: 0.5rem;
     transition: all var(--transition);
   }
@@ -150,7 +150,6 @@
     transition: all var(--transition);
   }
   
-  /* 旧版 .btn-primary(indigo) 已移除，避免覆盖变量驱动的主题色样式 */
   
   /* 次要按钮样式 */
   .btn-secondary {
@@ -261,8 +260,15 @@
 /* 移动端输入框紧凑化 */
 @media (max-width: 640px) {
   .form-input {
-    padding: 0rem 0.6rem; /* 缩小上下与左右内边距，降低高度 */
+    padding: 0.3rem 0.6rem; /* 缩小上下与左右内边距，降低高度 */
     font-size: 1rem;
+  }
+  /* 移动端：紧凑按钮，使其与输入框高度一致 */
+  .btn-compact-mobile {
+    padding: 0.3rem 0.6rem; /* 与 .form-input 保持一致的内边距 */
+    font-size: 1rem;        /* 与输入框一致的字体大小 */
+    line-height: 1.5;       /* 统一行高，减少高度差异 */
+    border-radius: 0.5rem;  /* 与输入框一致的圆角 */
   }
 }
 
