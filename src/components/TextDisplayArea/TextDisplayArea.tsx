@@ -18,6 +18,10 @@ interface TextDisplayAreaProps {
    * 是否自动揭示剩余字符（胜利状态）
    */
   autoReveal: boolean;
+  /**
+   * 是否为移动端布局：移动端保持 fixed 填满剩余空间；桌面端采用自然流布局
+   */
+  isMobileLayout?: boolean;
 }
 
 /**
@@ -25,11 +29,12 @@ interface TextDisplayAreaProps {
  * 显示被遮盖的词条和百科内容，保持原有的遮罩渲染逻辑
  * 内容区域可滚动，占满剩余高度
  */
-export const TextDisplayArea: React.FC<TextDisplayAreaProps> = memo(({
+export const TextDisplayArea: React.FC<TextDisplayAreaProps> = memo(({ 
   entryData,
   revealedChars,
   newlyRevealed,
-  autoReveal
+  autoReveal,
+  isMobileLayout = true,
 }) => {
   /**
    * 判断是否为标点符号（中英文）
@@ -121,22 +126,44 @@ export const TextDisplayArea: React.FC<TextDisplayAreaProps> = memo(({
     });
   }, [newlyRevealed, autoReveal]);
 
+  if (isMobileLayout) {
+    return (
+      <div
+        className="fixed left-0 right-0 z-10 overflow-hidden px-4 py-4"
+        style={{
+          // 使文本区域仅占据"顶部搜索栏"与"底部工具栏"之间的空间
+          top: 'calc(var(--topbar-h) + var(--infobar-h) + var(--searchbar-h))',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain'
+        }}
+      >
+        <div className="container mx-auto max-w-4xl h-full">
+          <div className="card-flat section p-2 pt-4 h-full max-h-[calc(100vh-var(--topbar-h)-var(--infobar-h)-var(--searchbar-h)-var(--bottombar-h)-32px)]">
+            <div className="flex flex-col gap-4 h-full overflow-y-auto custom-scrollbar pb-2 max-h-[calc(100vh-var(--topbar-h)-var(--infobar-h)-var(--searchbar-h)-var(--bottombar-h)-56px)]">
+              {/* 词条标题 */}
+              <div className="w-full text-2xl leading-relaxed rounded-lg break-all justify-center flex flex-wrap gap-1 flex-none">
+                {renderMaskedContent(entryContent)}
+              </div>
+
+              {/* 百科内容 */}
+              <div className="w-full text-base leading-relaxed rounded-lg break-all flex flex-wrap gap-1">
+                {renderMaskedContent(encyclopediaContent)}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 桌面端：采用自然流布局，放在搜索栏下方，底部工具栏跟随其后
   return (
-    <div
-      className="fixed left-0 right-0 z-10 overflow-hidden px-4 py-4"
-      style={{
-        // 使文本区域仅占据"顶部搜索栏"与"底部工具栏"之间的空间
-        top: 'calc(var(--topbar-h) + var(--infobar-h) + var(--searchbar-h))',
-        // bottom: 'var(--bottombar-h)',
-        WebkitOverflowScrolling: 'touch',
-        overscrollBehavior: 'contain'
-      }}
-    >
-      <div className="container mx-auto max-w-4xl h-full">
-        <div className="card-flat section p-2 pt-4 h-full max-h-[calc(100vh-var(--topbar-h)-var(--infobar-h)-var(--searchbar-h)-var(--bottombar-h)-32px)]">
-          <div className="flex flex-col gap-4 h-full overflow-y-auto custom-scrollbar pb-2 max-h-[calc(100vh-var(--topbar-h)-var(--infobar-h)-var(--searchbar-h)-var(--bottombar-h)-56px)]">
+    <div className="px-4 py-4" style={{ marginTop: 'calc(var(--topbar-h) + var(--infobar-h) + var(--searchbar-h))' }}>
+      <div className="container mx-auto max-w-4xl">
+        <div className="card-flat section p-2 pt-4">
+          <div className="flex flex-col gap-4">
             {/* 词条标题 */}
-            <div className="w-full text-2xl leading-relaxed rounded-lg break-all justify-center flex flex-wrap gap-1 flex-none">
+            <div className="w-full text-2xl leading-relaxed rounded-lg break-all justify-center flex flex-wrap gap-1">
               {renderMaskedContent(entryContent)}
             </div>
 

@@ -955,3 +955,14 @@
 - 打开预览验证无报错
 
 备注：变量方案与输入框一致，使 fixed 的 SearchInput 与容器变量在桌面布局下同步。下一步建议对不同视口宽度进行交叉验证。
+### 2025-11-11 桌面端布局调整（取消底部工具栏固定）
+
+- 目标：仅修改 PC 端布局，使底部工具栏不再固定在页面底部，而是紧挨文本区，随文本区高度变化；移动端保持吸底。
+- 修改内容：
+  - BottomToolbar：新增 `fixed?: boolean`，桌面端传 `false`，使用相对布局；移动端保持 `fixed`。
+  - TextDisplayArea：新增 `isMobileLayout?: boolean`，移动端保持原 `fixed`+剩余空间计算；桌面端改为自然流，使用 `marginTop: calc(var(--topbar-h)+var(--infobar-h)+var(--searchbar-h))` 避免被顶部固定栏遮挡。
+  - GameLayout：根据 `useDeviceProfile().isMobile` 传递 `isMobileLayout` 与 `fixed`。
+- 验证：本地预览地址 `http://localhost:5174/`，桌面端工具栏紧贴文本区显示，移动端仍吸底；视口切换与胜利状态提示均正常。
+- 待办/下一步：
+  - 若存在其他依赖 `var(--bottombar-h)` 的桌面端高度计算，后续统一移除或按需分支。
+  - 可在内容极长场景评估是否需要为桌面端添加分页或分段显示优化。

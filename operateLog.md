@@ -412,3 +412,14 @@
 变更摘要：为 btn-primary 与 form-textarea 引入内边距变量，并在桌面布局覆盖，统一移动/桌面断点下的视觉一致性。
 原因：在 iPad mini 等边界设备上需要保证按钮与文本域的内边距与输入框一致地响应断点。
 测试状态：[已测试]
+## 2025-11-11  
+
+- 时间：2025-11-11  
+- 操作类型：[修改]  
+- 影响文件：
+  - `src/components/BottomToolbar/BottomToolbar.tsx`
+  - `src/components/TextDisplayArea/TextDisplayArea.tsx`
+  - `src/components/GameLayout/GameLayout.tsx`
+- 变更摘要：桌面端取消底部工具栏固定，改为紧贴文本区的自然流布局；移动端保持吸底。  
+- 原因：优化 PC 端用户体验，避免固定栏遮挡并使其随文本区高度变化。  
+- 测试状态：[已测试]（本地预览 http://localhost:5174/ 验证桌面与移动布局切换正常）

@@ -13,6 +13,10 @@ interface BottomToolbarProps {
    * 是否禁用按钮
    */
   disabled?: boolean;
+  /**
+   * 是否吸底固定显示；移动端保持 true，桌面端改为 false
+   */
+  fixed?: boolean;
 }
 
 /**
@@ -20,10 +24,11 @@ interface BottomToolbarProps {
  * 包含提示和速查表按钮，具有吸底效果
  * 高度固定，位于屏幕最下方
  */
-export const BottomToolbar: React.FC<BottomToolbarProps> = memo(({
+export const BottomToolbar: React.FC<BottomToolbarProps> = memo(({ 
   onHintClick,
   onToggleQuickRef,
-  disabled = false
+  disabled = false,
+  fixed = true,
 }) => {
   /**
    * 处理提示按钮点击
@@ -45,8 +50,8 @@ export const BottomToolbar: React.FC<BottomToolbarProps> = memo(({
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] px-4 h-[var(--bottombar-h)]"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      className={`${fixed ? 'fixed bottom-0 left-0 right-0 z-50 h-[var(--bottombar-h)]' : 'relative w-full'} bg-[var(--color-surface)] px-4`}
+      style={{ paddingBottom: fixed ? 'env(safe-area-inset-bottom, 0px)' : undefined }}
     >
       <div className="container mx-auto max-w-4xl">
         <div className="flex justify-center items-center gap-6">

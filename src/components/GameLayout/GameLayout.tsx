@@ -226,6 +226,7 @@ export const GameLayout: React.FC<GameLayoutProps> = memo(({
         revealedChars={revealedChars}
         newlyRevealed={newlyRevealed}
         autoReveal={gameStatus === 'victory'}
+        isMobileLayout={isMobile}
       />
 
       {/* 底部工具栏 */}
@@ -233,6 +234,7 @@ export const GameLayout: React.FC<GameLayoutProps> = memo(({
         onHintClick={handleHintClick}
         onToggleQuickRef={onToggleQuickRef}
         disabled={isLoading}
+        fixed={isMobile}
       />
     </Container>
   );
