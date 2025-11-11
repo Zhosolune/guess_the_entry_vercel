@@ -892,3 +892,66 @@
 - 在抽屉中为坟场与已猜对字符增加统计信息（数量/占比）。
 - 为“速查表”按钮提供未读提示（新字块高亮时在按钮上显示微徽标）。
 - 若提示功能扩展，可在抽屉顶部加入“最近提示”区域统一展示。
+## 2025-11-11 — 双布局组件 + 设备画像 Hook
+
+目标：
+- 在保持移动端现有体验的前提下，引入“移动端/桌面端双布局”路由机制，后续可对桌面端进行独立优化。
+
+改动文件与要点：
+- `src/hooks/useDeviceProfile.ts`
+  - 新增设备画像 Hook，综合 `viewport` 宽度、交互能力（`pointer`/`hover`）、UA Client Hints，输出 `isMobile`、`isTouchLike` 等标志。
+  - 目的：避免仅以宽度判定，提升在混合设备（如触摸屏笔电）上的准确性。
+- `src/components/GameLayout/MobileLayout.tsx`
+  - 新增移动端布局包装组件：外层 `flex flex-col h-full overflow-hidden`，遵循“外层不滚动，正文滚动”的设计。
+  - 函数级注释：组件用途、参数、返回值与异常说明。
+- `src/components/GameLayout/DesktopLayout.tsx`
+  - 新增桌面端布局包装组件：暂与移动端一致，作为后续扩展的承载点（更宽容器、多栏等）。
+  - 函数级注释：组件用途、参数、返回值与异常说明。
+- `src/components/GameLayout/GameLayout.tsx`
+  - 在错误态返回之后插入：`const { isMobile } = useDeviceProfile(); const Container = isMobile ? MobileLayout : DesktopLayout;`
+  - 将外层 `<div className="flex flex-col h-full">` 替换为 `<Container>`，结尾闭合标签替换为 `</Container>`。
+  - 保持内部结构不变，确保“标题+百科内容”统一滚动容器继续生效。
+
+验证：
+- 启动本地预览：`npm run dev` → `http://localhost:5174/`（5173占用自动调整）。
+- 浏览器无错误日志；窗口宽度缩放下，路由逻辑不影响现有渲染与滚动行为。
+- 由于当前桌面与移动布局样式一致，视觉上无差异，验证重点为“无副作用”。
+
+注意与后续：
+- 真机场景下建议结合 `orientation` 与 `aspect-ratio` 做补充判定，保持 Hook 可扩展。
+- 后续可在 `DesktopLayout` 内调整容器宽度与内边距，或加入双栏结构；保持“外层不滚动，正文滚动”的既有约束。
+
+已完成：
+- 预览验证通过；更新记录至 `operateLog.md`。
+
+### 桌面端搜索栏高度提升至 64px
+
+- 目标：仅在 PC 布局中提升 SearchInput 高度为 64px，保持 TopBar 与 GameInfoBar 高度不变；移动端不受影响。
+- 变更：
+  - `src/components/GameLayout/DesktopLayout.tsx`：为容器添加类名 `desktop-layout`。
+  - `src/index.css`：在组件层定义 `.desktop-layout { --searchbar-h: 64px; }`，覆盖桌面端搜索栏高度变量。
+- 验证：本地预览 `http://localhost:5174/`，无错误日志；桌面布局下搜索栏高度按 64px 生效，固定布局与统一滚动容器不受影响。
+## 2025-11-11 10:45
+任务：统一断点方案并修复 iPad mini 边界样式不同步
+
+已完成：
+- 阅读 README，确认样式变量与布局策略
+- 设计断点方案：移动端宽度 <768（使用 767.98px），iPad mini 768 归为桌面布局；输入框内边距改为 CSS 变量并在 desktop 覆盖
+- 修改 `src/hooks/useDeviceProfile.ts`：将 `(max-width: 768px)` 改为 `(max-width: 767.98px)`
+- 修改 `src/index.css`：为 `.form-input` 引入 `--input-py/--input-px` 变量；在 `.desktop-layout` 覆盖更大内边距；保持 `--searchbar-h` 变量一致
+- 打开预览验证，确保无报错
+
+待办：
+- 进一步在不同设备尺寸下交叉验证（iPad 横/竖、Android 平板、Windows 窗口 768 边界）
+
+备注：采用变量覆盖方式确保 SearchInput 虽为 fixed 但仍可继承祖先变量，减少断点分歧带来的不一致。
+## 2025-11-11 11:05
+任务：为主按钮与文本域引入移动/桌面内边距变量
+
+已完成：
+- 在 `src/index.css` 的 `:root` 增加 `--btn-primary-py/--btn-primary-px` 与 `--textarea-py/--textarea-px`
+- 将 `.btn-primary` 与 `.form-textarea` 的 `padding` 改为变量引用
+- 在 `.desktop-layout` 覆盖按钮与文本域的内边距为桌面尺寸
+- 打开预览验证无报错
+
+备注：变量方案与输入框一致，使 fixed 的 SearchInput 与容器变量在桌面布局下同步。下一步建议对不同视口宽度进行交叉验证。

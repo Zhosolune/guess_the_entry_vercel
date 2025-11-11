@@ -125,16 +125,16 @@ export const TextDisplayArea: React.FC<TextDisplayAreaProps> = memo(({
     <div
       className="fixed left-0 right-0 z-10 overflow-hidden px-4 py-4"
       style={{
-        // 使文本区域仅占据“顶部搜索栏”与“底部工具栏”之间的空间
+        // 使文本区域仅占据"顶部搜索栏"与"底部工具栏"之间的空间
         top: 'calc(var(--topbar-h) + var(--infobar-h) + var(--searchbar-h))',
-        bottom: 'var(--bottombar-h)',
+        // bottom: 'var(--bottombar-h)',
         WebkitOverflowScrolling: 'touch',
         overscrollBehavior: 'contain'
       }}
     >
-      <div className="container mx-auto max-w-4xl h-flex max-h-[calc(100vh-var(--topbar-h)-var(--infobar-h)-var(--searchbar-h)-var(--bottombar-h))]">
-        <div className="card-flat section p-2 pt-4 h-full">
-          <div className="flex flex-col gap-4 h-full min-h-0 overflow-y-auto custom-scrollbar">
+      <div className="container mx-auto max-w-4xl h-full">
+        <div className="card-flat section p-2 pt-4 h-full max-h-[calc(100vh-var(--topbar-h)-var(--infobar-h)-var(--searchbar-h)-var(--bottombar-h)-32px)]">
+          <div className="flex flex-col gap-4 h-full overflow-y-auto custom-scrollbar pb-2 max-h-[calc(100vh-var(--topbar-h)-var(--infobar-h)-var(--searchbar-h)-var(--bottombar-h)-56px)]">
             {/* 词条标题 */}
             <div className="w-full text-2xl leading-relaxed rounded-lg break-all justify-center flex flex-wrap gap-1 flex-none">
               {renderMaskedContent(entryContent)}

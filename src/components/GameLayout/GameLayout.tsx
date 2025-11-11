@@ -1,12 +1,15 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import { EntryData, GameStatus } from '../../types/game.types';
 import { useKeyboard } from '../../hooks/useKeyboard';
+import { useDeviceProfile } from '../../hooks/useDeviceProfile';
 import { toast } from 'sonner';
 import { requestHint, Hint, HintContext } from '../../services/hints';
 import { GameInfoBar } from '../GameInfoBar/GameInfoBar';
 import { SearchInput } from '../SearchInput/SearchInput';
 import { TextDisplayArea } from '../TextDisplayArea/TextDisplayArea';
 import { BottomToolbar } from '../BottomToolbar/BottomToolbar';
+import { MobileLayout } from './MobileLayout';
+import { DesktopLayout } from './DesktopLayout';
 
 interface GameLayoutProps {
   entryData: EntryData;
@@ -175,8 +178,11 @@ export const GameLayout: React.FC<GameLayoutProps> = memo(({
     );
   }
 
+  const { isMobile } = useDeviceProfile();
+  const Container = isMobile ? MobileLayout : DesktopLayout;
+
   return (
-    <div className="flex flex-col h-full">
+    <Container>
       {/* 游戏信息栏 */}
       <GameInfoBar 
         formattedTime={formattedTime}
@@ -228,7 +234,7 @@ export const GameLayout: React.FC<GameLayoutProps> = memo(({
         onToggleQuickRef={onToggleQuickRef}
         disabled={isLoading}
       />
-    </div>
+    </Container>
   );
 });
 

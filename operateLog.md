@@ -378,3 +378,37 @@
 变更摘要：修复构建错误（移除未用 @ts-expect-error 并改用 event.isComposing）；提高 PC 端抽屉高度（md+ 设为 75vh）；将提示与速查表改为纯图标按钮并置于文本区外部下方居中。
 原因：满足构建与 UI 规范，提升 PC 端可视面积与按钮一致性。
 测试状态：[已测试] 构建通过（npm run build），预览已打开并未见浏览器错误。
+时间：2025-11-11 11:20
+操作类型：[重构]
+影响文件：
+- `src/hooks/useDeviceProfile.ts`
+- `src/components/GameLayout/MobileLayout.tsx`
+- `src/components/GameLayout/DesktopLayout.tsx`
+- `src/components/GameLayout/GameLayout.tsx`
+变更摘要：引入“双布局 + 设备画像 Hook”方案。新增移动/桌面布局包装组件并在 `GameLayout` 内根据 `useDeviceProfile().isMobile` 路由到对应布局；当前桌面布局与移动布局一致，后续可独立调整。保留“标题+百科内容”统一滚动容器行为。
+原因：更稳健地区分移动端与PC端布局职责，便于后续在桌面端进行更丰富的排版与交互改造，同时保持现有移动端体验。
+测试状态：[已测试]（本地预览 http://localhost:5174/，服务正常启动；窗口宽度缩放未出现报错，布局切换不影响现有滚动行为）
+
+时间：2025-11-11 11:28
+操作类型：[修改]
+影响文件：
+- `src/components/GameLayout/DesktopLayout.tsx`
+- `src/index.css`
+变更摘要：PC端搜索栏高度提升至 64px：在桌面布局容器类 `.desktop-layout` 上覆盖 `--searchbar-h: 64px`，保持顶部栏与游戏信息栏高度不变，移动端不受影响。
+原因：按需求提升桌面端 SearchInput 高度，避免影响移动端并保持固定布局计算链路不变。
+测试状态：[已测试]（本地预览 http://localhost:5174/，浏览器无错误；桌面布局下搜索栏高度按 64px 生效）
+2025-11-11 10:45
+[修改]
+影响文件：
+- src/hooks/useDeviceProfile.ts
+- src/index.css
+变更摘要：统一断点方案，修复 iPad mini 上搜索栏高度与输入框内边距不同步问题。
+原因：边界 768px 同时命中不同规则导致视觉不一致；引入输入框内边距变量并覆盖 desktop。
+测试状态：[已测试]
+2025-11-11 11:05
+[修改]
+影响文件：
+- src/index.css
+变更摘要：为 btn-primary 与 form-textarea 引入内边距变量，并在桌面布局覆盖，统一移动/桌面断点下的视觉一致性。
+原因：在 iPad mini 等边界设备上需要保证按钮与文本域的内边距与输入框一致地响应断点。
+测试状态：[已测试]
