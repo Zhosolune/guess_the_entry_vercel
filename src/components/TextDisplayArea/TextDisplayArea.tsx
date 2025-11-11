@@ -132,7 +132,7 @@ export const TextDisplayArea: React.FC<TextDisplayAreaProps> = memo(({
         overscrollBehavior: 'contain'
       }}
     >
-      <div className="container mx-auto max-w-4xl h-full">
+      <div className="container mx-auto max-w-4xl h-flex max-h-[calc(100vh-var(--topbar-h)-var(--infobar-h)-var(--searchbar-h)-var(--bottombar-h))]">
         <div className="card-flat section p-2 pt-4 h-full">
           <div className="flex flex-col gap-4 h-full min-h-0 overflow-y-auto custom-scrollbar">
             {/* 词条标题 */}
