@@ -198,6 +198,108 @@
 后续可选优化：
 - 为正确/错误字符面板增加统计信息（数量、占比）。
 - 面板项支持点击高亮对应字符在正文中的位置（需索引映射）。
+
+## 2025-11-10 — 文本区域高度仅占据搜索栏与底部栏之间
+
+目标：
+- 调整 `TextDisplayArea` 的高度与定位，使其不再填满整页，而是仅占据“顶部搜索栏”与“底部工具栏”之间的可用空间；内容溢出时可滚动。
+
+改动文件与要点：
+- `src/components/TextDisplayArea/TextDisplayArea.tsx`
+  - 容器改为固定定位：`className="fixed left-0 right-0 z-10 overflow-y-auto custom-scrollbar px-4 py-4"`。
+  - 顶部约束：`top: calc(var(--topbar-h) + var(--infobar-h) + var(--searchbar-h))`，与全局变量一致（`index.css`）。
+  - 底部约束：`bottom: var(--bottombar-h)`，包含安全区（变量已计算）。
+  - 移除对高度的百分比计算，采用固定 `top/bottom` 约束来自适应剩余空间。
+  - 保留滚动相关属性：`overflow-y: auto`、`WebkitOverflowScrolling: 'touch'`、`overscrollBehavior: 'contain'`。
+
+验证：
+- 重启/打开本地预览：`http://localhost:5175/`（5173/5174 占用自动切换）。
+- 观察：
+  - 顶部 `TopBar`、`GameInfoBar`、`SearchInput` 保持固定；底部 `BottomToolbar` 保持固定。
+  - 文本区域仅在两者之间出现，并可滚动；滚动不会遮挡或覆盖固定栏。
+  - 自适应屏幕尺寸变更（窗口大小变化/移动端模拟）。
+
+兼容性与移动端键盘：
+- iOS Safari：底部安全区使用 `env(safe-area-inset-bottom)`，经变量 `--bottombar-h` 统一计算，避免系统手势遮挡。
+- Android Chrome：`100dvh` 在容器层已应用；文本区域采用 `fixed` 约束避免地址栏收起/展开导致高度跳动。
+- 键盘弹出：固定栏不随键盘滚动；文本区域滚动不重叠，建议在真机进一步验证输入场景。
+
+下一步建议：
+- 依据真机反馈微调 `--searchbar-h`（受不同设备字号与按钮尺寸影响）。
+- 如需更平滑的层级过渡，可为文本区域顶部/底部增加半透明阴影，突出分隔感（不影响布局）。
+
+已完成：
+- 本次 UI 调整与预览验证，浏览器无错误。
+- 记录操作至 `operateLog.md`。
+
+## 2025-11-10 — 仅百科内容块滚动，其余层级不滚动
+
+目标：
+- 实现“只有文本区某一层级可滚动，其余层级不滚动”：让百科内容块承担滚动，外层固定容器与词条标题不滚动。
+
+改动文件与要点：
+- `src/components/TextDisplayArea/TextDisplayArea.tsx`
+  - 外层固定容器：`overflow-y-auto custom-scrollbar` 改为 `overflow-hidden`，避免容器层滚动。
+  - 高度链路：容器与卡片添加 `h-full`，保证内部可用高度传递到滚动块。
+  - 布局：内部改为 `flex flex-col gap-6 h-full`，形成“标题块 + 滚动块”的列布局。
+  - 标题块：添加 `flex-none`，保持自然高度且不参与滚动。
+  - 百科内容块：添加 `flex-1 min-h-0 overflow-y-auto custom-scrollbar`，作为唯一滚动区域。
+
+验证：
+- 本地预览：`http://localhost:5175/`。
+- 观察：仅百科内容块出现滚动条；标题与外层维持静止；滚动不遮挡顶部/底部固定栏。
+
+兼容性与注意事项：
+- 需要确保父链路包含 `h-full`，否则 `flex-1` 的剩余高度计算会被阻断。
+- 若不同设备字体与按钮导致 `--searchbar-h` 差异，可按真机微调该变量；不影响滚动层级设计。
+
+已完成：
+- 预览验证通过；更新记录至 `operateLog.md`。
+
+## 2025-11-10 — 标题+百科内容整体滚动（统一滚动容器）
+
+目标：
+- 将滚动职责提升到内部列容器，使“词条标题+百科内容”作为单一滚动区域（对应 `TextDisplayArea.tsx#L137-147`）。
+
+改动文件与要点：
+- `src/components/TextDisplayArea/TextDisplayArea.tsx`
+  - 内部容器改为：`flex flex-col gap-6 h-full min-h-0 overflow-y-auto custom-scrollbar`（统一滚动容器）。
+  - 百科内容块移除 `flex-1 min-h-0 overflow-y-auto custom-scrollbar`，改为普通内容块，使其与标题一起在统一容器内滚动。
+  - 外层固定容器保持 `overflow-hidden`，避免出现外层滚动与双滚动条。
+
+验证：
+- 本地预览：`http://localhost:5175/`。
+- 观察：标题与百科内容整体滚动；固定顶部/底部栏不受影响；无双滚动条。
+
+注意事项：
+- 保证父链路 `h-full + min-h-0`，否则统一滚动容器的可用高度计算会受限。
+- 真机可能因字体/按钮高度影响 `--searchbar-h`，必要时微调该变量但不改变滚动层级设计。
+
+已完成：
+- 预览验证通过；更新记录至 `operateLog.md`。
+
+时间：2025-11-10 10:00
+操作类型：[修改]
+影响文件：
+- 运行环境（开发服务器与预览）
+
+变更摘要：重启 Vite 开发服务器并打开本地预览，验证移动端固定布局（顶部导航、信息栏、搜索栏、底部工具栏）与文本区域滚动行为。端口 5173 被占用后自动切换到 5174。
+原因：按移动端需求完成固定与滚动区域改造后，需要实际预览验证吸顶/吸底效果与滚动仅在正文区域发生。
+
+已完成内容：
+- 启动开发服务器：`npm run dev`；预览地址：`http://localhost:5174/`。
+- 打开本地预览，检查以下要点：
+  - 顶部导航（TopBar）固定不随滚动移动。
+  - 信息栏（GameInfoBar）固定在 TopBar 下方。
+  - 搜索栏（SearchInput）固定在信息栏下方。
+  - 底部工具栏（BottomToolbar）固定吸底，iOS 安全区兼容。
+  - 文本区域（TextDisplayArea）独立滚动，滚动条仅出现在该区域。
+  - 滚动时无跳动或闪烁，分隔清晰，一致性良好。
+
+待验证/下一步：
+- 在 iOS Safari 与 Android Chrome 下进行真机测试，观察软键盘弹出时底部工具栏可见性与文本区域高度自适应；必要时启用 `100svh` 兼容策略。
+
+测试状态：[已测试]
 ## 2025-11-06 15:30 — 统一字符块与标点显示策略
 
 目标：

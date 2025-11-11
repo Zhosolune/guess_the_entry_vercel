@@ -198,6 +198,19 @@
 ## 2025-11-07 14:34
 - 操作类型：修改
 - 影响文件：`src/components/GameStart/GameStart.tsx`
+
+时间：2025-11-10 16:30
+操作类型：[重构]
+影响文件：
+- `src/components/TopBar.tsx`
+- `src/components/GameInfoBar/GameInfoBar.tsx`
+- `src/components/SearchInput/SearchInput.tsx`
+- `src/components/BottomToolbar/BottomToolbar.tsx`
+- `src/components/TextDisplayArea/TextDisplayArea.tsx`
+- `src/index.css`
+变更摘要：移动端布局与滚动行为重构：顶部导航、信息栏、搜索栏改为固定定位；底部工具栏改为 position: fixed 并适配安全区域；仅文本区域可滚动并设置固定高度，使用 100dvh 与 iOS 惯性滚动，消除元素跳动和闪烁。
+原因：满足移动端吸顶/吸底与滚动区域限定的需求，提升不同屏幕与键盘弹出场景下的可用性与可见性。
+测试状态：[待测试]
 - 变更摘要：将“随机”选项按钮改为独占一行，宽度与其他按钮一致，并在行内垂直居中。
 - 原因：提高随机选项的布局一致性与可读性，满足“独占一行且垂直居中”的交互要求。
 - 测试状态：已测试（本地预览无错误）
@@ -245,6 +258,33 @@
 - 原因：提升信息可读性与界面一致性，便于按首字母定位已猜对字符。
 - 测试状态：已测试（本地预览 http://localhost:5174/，浏览器无错误提示）
 时间：2025-11-07 16:59
+
+时间：2025-11-10 17:35
+操作类型：[修改]
+影响文件：
+- `src/components/TextDisplayArea/TextDisplayArea.tsx`
+
+变更摘要：将文本区域改为固定定位（position: fixed），设置顶部约束为 `TopBar + GameInfoBar + SearchInput` 的总高度（`top: calc(var(--topbar-h) + var(--infobar-h) + var(--searchbar-h))`），底部约束为底部工具栏高度（`bottom: var(--bottombar-h)`），确保文本区域仅占据两者之间的可用空间并在内容溢出时滚动。
+原因：满足移动端布局规范：顶部搜索栏与底部工具栏固定，正文区域自动适配剩余空间，避免与固定栏重叠。
+测试状态：[已测试]（本地预览 http://localhost:5175/，浏览器无错误，滚动不遮挡顶部/底部栏）
+
+时间：2025-11-10 17:52
+操作类型：[重构]
+影响文件：
+- `src/components/TextDisplayArea/TextDisplayArea.tsx`
+
+变更摘要：仅允许百科内容块滚动：外层固定容器改为 `overflow-hidden`；卡片与内部容器设为 `h-full` 并使用 `flex` 列布局；词条标题为非滚动块（`flex-none`）；百科内容为唯一滚动块（`flex-1 min-h-0 overflow-y-auto custom-scrollbar`）。
+原因：满足“只有文本区特定层级可滚动，其余层级不滚动”的需求，避免外层滚动造成与固定工具栏的视觉/交互冲突。
+测试状态：[已测试]（本地预览 http://localhost:5175/，滚动仅发生在百科内容块，标题与外层不滚动）
+
+时间：2025-11-10 18:05
+操作类型：[修改]
+影响文件：
+- `src/components/TextDisplayArea/TextDisplayArea.tsx`
+
+变更摘要：根据最新需求，将滚动职责提升到内部列容器（`flex flex-col`），使“词条标题+百科内容”作为单一滚动区域；移除百科内容块的独立滚动样式，保持外层固定容器不滚动。
+原因：满足“L137-147 整体可滚动，其余层级不滚动”的需求，统一滚动体验并避免双滚动条。
+测试状态：[已测试]（本地预览 http://localhost:5175/，标题与百科内容整体滚动，未与固定栏重叠）
 操作类型：[修改]
 影响文件：
 - src/index.css

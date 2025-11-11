@@ -38,11 +38,12 @@ export const TopBar: React.FC<TopBarProps> = memo(({ title = '词条猜测游戏
   };
 
   // 当有进度时，移除常规底部边框，由进度条承载视觉分隔
-  const headerClass = `sticky top-0 z-50 bg-[var(--color-surface)] ${progress !== undefined ? '' : 'border-b border-[var(--color-border)]'}`;
+  // 移动端要求固定顶部：使用 fixed，确保在滚动时位置不变
+  const headerClass = `fixed top-0 left-0 right-0 z-50 bg-[var(--color-surface)] ${progress !== undefined ? '' : 'border-b border-[var(--color-border)]'}`;
 
   return (
     <header className={headerClass}>
-      <div className="container mx-auto max-w-4xl px-3 h-15 grid grid-cols-3 items-center">
+      <div className="container mx-auto max-w-4xl px-3 h-10 grid grid-cols-3 items-center">
         {/* 左侧信息按钮 */}
         <div className="justify-self-start">
           <button

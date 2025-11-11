@@ -34,6 +34,14 @@
     --section-padding-lg: 1.25rem; /* 桌面端基准 */
     --radius: 0.75rem;
     --transition: 0.3s ease;
+
+    /* 移动端布局高度变量（用于固定定位计算）*/
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    /* 预估高度：与现有组件的内边距/高度匹配，避免样式变更 */
+    --topbar-h: 40px;        /* TopBar 高度，h-10 约等于 40px */
+    --infobar-h: 30px;       /* GameInfoBar 高度，py-1 约 30px */
+    --searchbar-h: 48px;     /* SearchInput 高度，含按钮约 48px */
+    --bottombar-h: calc(32px + var(--safe-bottom)); /* BottomToolbar 吸底高度 */
   }
   html {
     scroll-behavior: smooth;

@@ -2,7 +2,7 @@ import React, { useCallback, memo, useMemo } from 'react';
 import { Toaster } from 'sonner';
 import { ErrorBoundary } from './utils/errorHandler';
 import { GameStart } from './components/GameStart/GameStart';
-import { GameBoard } from './components/GameBoard/GameBoard';
+import { GameLayout } from './components/GameLayout/GameLayout';
 import QuickRefDrawer from './components/QuickRefDrawer';
 import { useGameState } from './hooks/useGameState';
 import { useTimestampTimer } from './hooks/useTimer';
@@ -108,7 +108,7 @@ const App: React.FC = memo(() => {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-[var(--color-bg-app)]">
+      <div className="min-h-screen bg-[var(--color-bg-app)] flex flex-col">
         <Toaster 
           position="top-center"
           toastOptions={{
@@ -126,57 +126,39 @@ const App: React.FC = memo(() => {
         />
         
         {gameState.gameStatus === 'start' && (
-          <GameStart 
-            onStartGame={handleStartGame}
-            isLoading={gameState.isLoading}
-          />
+          <div className="flex-1 flex items-center justify-center">
+            <GameStart 
+              onStartGame={handleStartGame}
+              isLoading={gameState.isLoading}
+            />
+          </div>
         )}
 
         {(gameState.gameStatus === 'playing' || gameState.gameStatus === 'victory') && gameState.currentEntry && (
-          <div className="container mx-auto max-w-4xl">
-            <div className="mb-4">
-              {/* 顶部栏正下方的居中统计（缩小字号） */}
-              <div className="flex items-center justify-center gap-4 mt-1 text-xs text-[var(--color-text-muted)]">
-                <div><span className="font-medium">时间: {formattedTime}</span></div>
-                <div><span className="font-medium">尝试: {gameState.attempts}</span></div>
-                <div><span className="font-medium">进度: {gameProgress}%</span></div>
-              </div>
-            </div>
-
-            <div className="grid gap-4">
-              <div className="">
-                <GameBoard
-                  entryData={gameState.currentEntry}
-                  guessedChars={gameState.guessedChars}
-                  revealedChars={gameState.revealedChars}
-                  attempts={gameState.attempts}
-                  onGuess={handleGameGuess}
-                  isLoading={gameState.isLoading}
-                  error={gameState.error}
-                  // 胜利态传递冻结秒数，避免显示 00:00
-                  gameTime={gameState.gameStatus === 'victory' && finalSeconds !== null ? finalSeconds : time}
-                  gameStatus={gameState.gameStatus}
-                  /**
-                   * 再来一局回调：停止与重置计时器，重置游戏到初始界面
-                   */
-                  onRestart={() => {
-                    try {
-                      stopTimer();
-                      resetTimer();
-                      setFinalSeconds(null);
-                      resetGame();
-                      setIsQuickRefOpen(false);
-                    } catch (e) {
-                      console.error('重置失败:', e);
-                    }
-                  }}
-                  /**
-                   * 速查表抽屉显隐切换
-                   */
-                  onToggleQuickRef={() => setIsQuickRefOpen(v => !v)}
-                />
-              </div>
-            </div>
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <GameLayout
+              entryData={gameState.currentEntry}
+              guessedChars={gameState.guessedChars}
+              revealedChars={gameState.revealedChars}
+              attempts={gameState.attempts}
+              onGuess={handleGameGuess}
+              isLoading={gameState.isLoading}
+              error={gameState.error}
+              gameTime={gameState.gameStatus === 'victory' && finalSeconds !== null ? finalSeconds : time}
+              gameStatus={gameState.gameStatus}
+              onRestart={() => {
+                try {
+                  stopTimer();
+                  resetTimer();
+                  setFinalSeconds(null);
+                  resetGame();
+                  setIsQuickRefOpen(false);
+                } catch (e) {
+                  console.error('重置失败:', e);
+                }
+              }}
+              onToggleQuickRef={() => setIsQuickRefOpen(v => !v)}
+            />
           </div>
         )}
         {/* 速查表抽屉（全局固定定位，默认隐藏） */}
