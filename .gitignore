@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 # Cloudflare local secrets (do not commit)
 cloudflare/.dev.vars
+cloudflare/

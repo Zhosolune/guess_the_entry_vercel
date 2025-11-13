@@ -154,9 +154,9 @@ export const GameStart: React.FC<GameStartProps> = memo(({ onStartGame, isLoadin
             <p>正在生成词条，请稍候...</p>
             <div className="mt-2">
               <div className="inline-flex space-x-1">
-                <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
-                <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
-                <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
               </div>
             </div>
           </div>

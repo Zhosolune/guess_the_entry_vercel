@@ -143,7 +143,6 @@ const App: React.FC = memo(() => {
    * @returns void
    */
   const closeAllDrawers = React.useCallback((): void => {
-    setIsQuickRefOpen(false);
     setIsSettingsOpen(false);
     setIsScoreboardOpen(false);
   }, []);
@@ -158,7 +157,6 @@ const App: React.FC = memo(() => {
       const next = !prev;
       if (next) {
         // 打开设置抽屉 -> 关闭其他抽屉
-        setIsQuickRefOpen(false);
         setIsScoreboardOpen(false);
       }
       return next;
@@ -175,7 +173,6 @@ const App: React.FC = memo(() => {
       const next = !prev;
       if (next) {
         // 打开计分板抽屉 -> 关闭其他抽屉
-        setIsQuickRefOpen(false);
         setIsSettingsOpen(false);
       }
       return next;
