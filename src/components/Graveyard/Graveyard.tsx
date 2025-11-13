@@ -96,7 +96,6 @@ export const Graveyard: React.FC<GraveyardProps> = memo(({ graveyard }) => {
           <span
             key={`${groupKey}-${char}-${index}`}
             className={`graveyard-char${isLast ? ' last-added' : ''}`}
-            title={char}
           >
             {char}
           </span>

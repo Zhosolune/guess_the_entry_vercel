@@ -98,7 +98,6 @@ export const CorrectPanel: React.FC<CorrectPanelProps> = ({ guessedChars }) => {
           <span
             key={`cp-${groupKey}-${char}-${index}`}
             className={`correct-char${isLast ? ' last-added' : ''}`}
-            title={char}
           >
             {char}
           </span>

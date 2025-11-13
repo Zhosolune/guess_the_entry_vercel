@@ -81,13 +81,7 @@
   font-weight: 400;
   color: #dc2626;
   transition: all 0.2s ease;
-  cursor: pointer;
   box-sizing: border-box; /* 保证边框不改变总体尺寸 */
-}
-
-.graveyard-char:hover {
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
 }
 
 /* 已猜对字符样式 */
@@ -108,11 +102,6 @@
   box-sizing: border-box; /* 保证边框不改变总体尺寸 */
 }
 
-.correct-char:hover {
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-}
-
 /* 暗色主题覆盖：坟场与已猜对字块略微加深配色 */
 html.dark .graveyard-char {
   /* 由 red-100/200 稍微加深到 red-200/300 */
@@ -120,18 +109,10 @@ html.dark .graveyard-char {
   color: #dc2626; /* 保持原有文字色，增强识别 */
 }
 
-html.dark .graveyard-char:hover {
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
-}
-
 html.dark .correct-char {
   /* 由 green-100/200 稍微加深到 green-200/300 */
   background: linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%);
   color: #065f46; /* 保持原有文字色，确保风格一致 */
-}
-
-html.dark .correct-char:hover {
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
 }
 
 /* 自动揭示（灰框）字符样式 */
