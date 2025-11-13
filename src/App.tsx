@@ -5,6 +5,7 @@ import { GameStart } from './components/GameStart/GameStart';
 import { GameLayout } from './components/GameLayout/GameLayout';
 import QuickRefDrawer from './components/QuickRefDrawer';
 import ScoreboardDrawer from './components/ScoreboardDrawer';
+import GameInfoDrawer from './components/GameInfoDrawer';
 import SettingsDrawer, { QuickRefPosition } from './components/SettingsDrawer';
 import { useGameState } from './hooks/useGameState';
 import { useTimestampTimer } from './hooks/useTimer';
@@ -35,6 +36,11 @@ const App: React.FC = memo(() => {
    * 速查表抽屉显隐状态（默认隐藏）
    */
   const [isQuickRefOpen, setIsQuickRefOpen] = React.useState<boolean>(false);
+
+  /**
+   * 游戏信息抽屉显隐状态（默认隐藏）
+   */
+  const [isGameInfoOpen, setIsGameInfoOpen] = React.useState<boolean>(false);
 
   /**
    * 设置抽屉显隐状态（默认隐藏）
@@ -158,6 +164,7 @@ const App: React.FC = memo(() => {
       if (next) {
         // 打开设置抽屉 -> 关闭其他抽屉
         setIsScoreboardOpen(false);
+        setIsGameInfoOpen(false);
       }
       return next;
     });
@@ -174,6 +181,24 @@ const App: React.FC = memo(() => {
       if (next) {
         // 打开计分板抽屉 -> 关闭其他抽屉
         setIsSettingsOpen(false);
+        setIsGameInfoOpen(false);
+      }
+      return next;
+    });
+  }, []);
+
+  /**
+   * 游戏信息按钮点击处理
+   * 仅在游戏界面时提供，初始页面不渲染游戏信息按钮
+   * 互斥策略：当即将开启游戏信息抽屉时，关闭其他抽屉
+   */
+  const handleOpenGameInfo = React.useCallback((): void => {
+    setIsGameInfoOpen(prev => {
+      const next = !prev;
+      if (next) {
+        // 打开游戏信息抽屉 -> 关闭其他抽屉
+        setIsSettingsOpen(false);
+        setIsScoreboardOpen(false);
       }
       return next;
     });
@@ -202,6 +227,8 @@ const App: React.FC = memo(() => {
           scoreboardOpen={showScoreboardButton ? isScoreboardOpen : false}
           onOpenSettings={showSettingsButton ? handleOpenSettings : undefined}
           settingsOpen={showSettingsButton ? isSettingsOpen : false}
+          onOpenGameInfo={handleOpenGameInfo}
+          gameInfoOpen={isGameInfoOpen}
         />
         
         {gameState.gameStatus === 'start' && (
@@ -242,17 +269,22 @@ const App: React.FC = memo(() => {
           onToggleQuickRef={() => {
             setIsQuickRefOpen(prev => {
               const next = !prev;
-              if (next) {
-                // 打开速查表 -> 关闭其他抽屉
-                setIsSettingsOpen(false);
-                setIsScoreboardOpen(false);
-              }
+              // if (next) {
+              //   // 打开速查表 -> 关闭其他抽屉
+              //   setIsSettingsOpen(false);
+              //   setIsScoreboardOpen(false);
+              // }
               return next;
             });
           }}
         />
       </div>
     )}
+    {/* 游戏信息抽屉（TopBar 下方，最上层） */}
+    <GameInfoDrawer
+      isOpen={isGameInfoOpen}
+      onClose={() => setIsGameInfoOpen(false)}
+    />
     {/* 速查表抽屉（全局固定定位，默认隐藏） */}
     {(gameState.gameStatus === 'playing' || gameState.gameStatus === 'victory') && (
       <QuickRefDrawer

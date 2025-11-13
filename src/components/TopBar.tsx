@@ -8,6 +8,14 @@ interface TopBarProps {
    */
   progress?: number;
   /**
+   * 游戏信息按钮点击回调（可选）；用于打开游戏信息抽屉或路由
+   */
+  onOpenGameInfo?: () => void;
+  /**
+   * 游戏信息抽屉是否开启；用于按钮固定主题色与可访问性状态
+   */
+  gameInfoOpen?: boolean;
+  /**
    * 计分板按钮点击回调（可选）；用于打开计分板抽屉或路由
    */
   onOpenScoreboard?: () => void;
@@ -31,22 +39,20 @@ interface TopBarProps {
  * - 中间：标题居中显示
  * - 右侧：主题切换按钮（明暗主题）
  */
-export const TopBar: React.FC<TopBarProps> = memo(({ progress, onOpenScoreboard, scoreboardOpen, onOpenSettings, settingsOpen }) => {
+export const TopBar: React.FC<TopBarProps> = memo(({ progress, onOpenGameInfo, gameInfoOpen, onOpenScoreboard, scoreboardOpen, onOpenSettings, settingsOpen }) => {
   const { isDark, toggleTheme } = useTheme();
   const [showRules, setShowRules] = useState<boolean>(false);
 
   /**
-   * 打开规则弹窗
+   * 处理游戏信息按钮点击
+   * 当提供 onOpenGameInfo 回调时触发；否则不进行任何操作
+   *
+   * @returns void
    */
-  const openRules = (): void => {
-    setShowRules(true);
-  };
-
-  /**
-   * 关闭规则弹窗
-   */
-  const closeRules = (): void => {
-    setShowRules(false);
+  const handleOpenGameInfo = (): void => {
+    if (onOpenGameInfo) {
+      onOpenGameInfo();
+    }
   };
 
   /**
@@ -82,24 +88,32 @@ export const TopBar: React.FC<TopBarProps> = memo(({ progress, onOpenScoreboard,
       <div className="container mx-auto max-w-4xl px-3 h-10 grid grid-cols-3 items-center">
         {/* 左侧信息按钮 */}
         <div className="justify-self-start">
-          <button
-            onClick={openRules}
-            className="inline-flex items-center p-2 text-[var(--color-text)] hover:text-[var(--color-primary)] focus:outline-none"
-            aria-label="信息"
-          >
-            <svg className="w-6 h-6" viewBox="0 0 32 32" fill="currentColor">
+          {onOpenGameInfo && (
+            <button
+              onClick={handleOpenGameInfo}
+              className={
+                `inline-flex items-center p-2 focus:outline-none ` +
+                (gameInfoOpen ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)] md:hover:text-[var(--color-primary)]')
+              }
+              aria-label="游戏信息"
+              title="游戏信息"
+              aria-expanded={!!gameInfoOpen}
+              aria-pressed={!!gameInfoOpen}
+            >
+              <svg className="w-6 h-6" viewBox="0 0 32 32" fill="currentColor">
               <path d="M16 2a14 14 0 1 0 14 14A14 14 0 0 0 16 2zm0 26a12 12 0 1 1 12-12a12 12 0 0 1-12 12z"></path>
               <circle cx="16" cy="23.5" r="1.5"></circle>
               <path d="M17 8h-1.5a4.49 4.49 0 0 0-4.5 4.5v.5h2v-.5a2.5 2.5 0 0 1 2.5-2.5H17a2.5 2.5 0 0 1 0 5h-2v4.5h2V17a4.5 4.5 0 0 0 0-9z"></path>
             </svg>
           </button>
+          )}
 
           {onOpenScoreboard && (
             <button
               onClick={handleOpenScoreboard}
               className={
                 `inline-flex items-center p-2 focus:outline-none ` +
-                (scoreboardOpen ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)] hover:text-[var(--color-primary)]')
+                (scoreboardOpen ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)] md:hover:text-[var(--color-primary)]')
               }
               aria-label="计分板"
               title="计分板"
@@ -139,7 +153,7 @@ export const TopBar: React.FC<TopBarProps> = memo(({ progress, onOpenScoreboard,
               onClick={handleOpenSettings}
               className={
                 `inline-flex items-center p-2 focus:outline-none ` +
-                (settingsOpen ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)] hover:text-[var(--color-primary)]')
+                (settingsOpen ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)] md:hover:text-[var(--color-primary)]')
               }
               aria-label="设置"
               title="设置"
@@ -193,30 +207,6 @@ export const TopBar: React.FC<TopBarProps> = memo(({ progress, onOpenScoreboard,
         </div>
       )}
 
-      {/* 游戏规则弹窗 */}
-      {showRules && (
-        <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4" onClick={closeRules}>
-          <div className="card-flat section max-w-lg w-full bg-[var(--color-surface)]" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-[var(--color-text)]">游戏规则</h2>
-              <button 
-                className="btn-flat"
-                onClick={closeRules}>
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M18 6L6 18" />
-                    <path d="M6 6l12 12" />
-                  </svg>
-                </button>
-            </div>
-            <div className="space-y-3 text-[var(--color-text-muted)]">
-              <p>1、选择一个你感兴趣的领域，系统将随机生成一个词条</p>
-              <p>2、输入单个汉字进行猜测，正确的字符会显示出来</p>
-              <p>3、猜错的字符会被添加到“坟场”区域</p>
-              <p>4、完全揭示词条内容即可获胜！</p>
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 });

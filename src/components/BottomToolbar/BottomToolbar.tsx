@@ -91,7 +91,7 @@ export const BottomToolbar: React.FC<BottomToolbarProps> = memo(({
             type="button"
             onClick={handleQuickRefClick}
             disabled={disabled}
-            className={`inline-flex items-center p-0 focus:outline-none gap-1 disabled:opacity-50 disabled:cursor-not-allowed ${quickRefOpen ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)]'} ${disabled ? '' : 'hover:text-[var(--color-primary)]'}`}
+            className={`inline-flex items-center p-0 focus:outline-none gap-1 disabled:opacity-50 disabled:cursor-not-allowed ${quickRefOpen ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)]'} ${disabled ? '' : 'md:hover:text-[var(--color-primary)]'}`}
             title="速查表"
             aria-label="速查表"
           >
