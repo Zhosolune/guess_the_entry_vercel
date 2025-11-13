@@ -63,6 +63,16 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 200ms ease, color 200ms ease;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+  input, textarea, select, .allow-select {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
   }
   /* 暗色主题变量（通过 html.dark 类控制，优先于系统偏好） */
   html.dark {
