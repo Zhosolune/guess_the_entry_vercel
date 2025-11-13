@@ -1,4 +1,4 @@
-import React, { useState, memo } from 'react';
+import React, { useState, memo, useEffect } from 'react';
 import { Info, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 
@@ -42,6 +42,15 @@ interface TopBarProps {
 export const TopBar: React.FC<TopBarProps> = memo(({ progress, onOpenGameInfo, gameInfoOpen, onOpenScoreboard, scoreboardOpen, onOpenSettings, settingsOpen }) => {
   const { isDark, toggleTheme } = useTheme();
   const [showRules, setShowRules] = useState<boolean>(false);
+  const [canHover, setCanHover] = useState<boolean>(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const update = () => setCanHover(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
 
   /**
    * 处理游戏信息按钮点击
@@ -94,7 +103,7 @@ export const TopBar: React.FC<TopBarProps> = memo(({ progress, onOpenGameInfo, g
               onClick={handleOpenGameInfo}
               className={
                 `inline-flex items-center p-2 focus:outline-none ` +
-                (gameInfoOpen ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)] md:hover:text-[var(--color-primary)]')
+                (gameInfoOpen ? 'text-[var(--color-primary)]' : `text-[var(--color-text)] ${canHover ? 'hover:text-[var(--color-primary)]' : ''}`)
               }
               aria-label="游戏信息"
               title="游戏信息"
@@ -114,7 +123,7 @@ export const TopBar: React.FC<TopBarProps> = memo(({ progress, onOpenGameInfo, g
               onClick={handleOpenScoreboard}
               className={
                 `inline-flex items-center p-2 focus:outline-none ` +
-                (scoreboardOpen ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)] md:hover:text-[var(--color-primary)]')
+                (scoreboardOpen ? 'text-[var(--color-primary)]' : `text-[var(--color-text)] ${canHover ? 'hover:text-[var(--color-primary)]' : ''}`)
               }
               aria-label="计分板"
               title="计分板"
@@ -154,7 +163,7 @@ export const TopBar: React.FC<TopBarProps> = memo(({ progress, onOpenGameInfo, g
               onClick={handleOpenSettings}
               className={
                 `inline-flex items-center p-2 focus:outline-none ` +
-                (settingsOpen ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)] md:hover:text-[var(--color-primary)]')
+                (settingsOpen ? 'text-[var(--color-primary)]' : `text-[var(--color-text)] ${canHover ? 'hover:text-[var(--color-primary)]' : ''}`)
               }
               aria-label="设置"
               title="设置"
