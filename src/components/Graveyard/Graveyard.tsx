@@ -149,7 +149,7 @@ export const Graveyard: React.FC<GraveyardProps> = memo(({ graveyard }) => {
       </div>
 
       {/* 行内“分组标签 + 字块”流式布局（A-Z；数字与符号归 "#"） */}
-      <div className="mt-4 graveyard-scroll">
+      <div className="mt-4">
         <div className={`graveyard-stream ${showLabels ? 'labels-visible' : ''}`}>
           {renderGroupedStream(groupedMap, showLabels)}
         </div>
