@@ -179,7 +179,7 @@ export const TopBar: React.FC<TopBarProps> = memo(({ progress, onOpenGameInfo, g
 
           <button
             onClick={toggleTheme}
-            className="inline-flex items-center p-2 text-[var(--color-text)] hover:text-[var(--color-primary)] focus:outline-none"
+            className={`inline-flex items-center p-2 focus:outline-none text-[var(--color-text)] ${canHover ? 'hover:text-[var(--color-primary)]' : ''}`}
             aria-label={isDark ? '切换到明亮主题' : '切换到暗黑主题'}
             role="switch"
             aria-checked={isDark}
