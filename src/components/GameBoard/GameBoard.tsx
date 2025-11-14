@@ -124,6 +124,7 @@ export const GameBoard: React.FC<GameBoardProps> = memo(({
     // 检查是否已经猜过
     if (guessedCharsSet.has(char)) {
       toast.info(`已经猜过"${char}"了`);
+      setInputValue('');
       return;
     }
 

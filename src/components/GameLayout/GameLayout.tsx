@@ -102,6 +102,7 @@ export const GameLayout: React.FC<GameLayoutProps> = memo(({
     // 检查是否已经猜过
     if (guessedChars.has(char)) {
       toast.info(`已经猜过"${char}"了`);
+      setInputValue('');
       return;
     }
 
