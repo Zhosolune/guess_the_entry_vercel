@@ -216,22 +216,22 @@ export const GameLayout: React.FC<GameLayoutProps> = memo(({
 
       {/* 胜利状态：在原搜索栏区域显示操作按钮 */}
       {gameStatus === 'victory' && (
-        <div className="fixed left-0 right-0 top-[calc(var(--topbar-h)+var(--infobar-h))] z-30 px-4 pt-3 bg-[var(--color-surface)] h-[var(--searchbar-h)]">
+        <div className="fixed left-0 right-0 top-[var(--topbar-h)] z-40 bg-[var(--color-surface)] h-[calc(var(--searchbar-h)+var(--infobar-h))]">
           <div className="container mx-auto max-w-4xl">
             <div className="text-center">
-              <div className="text-emerald-600 text-lg font-semibold">恭喜通关！</div>
-              <div className="text-[var(--color-text)] mt-1">可以选择查看词条内容或再来一局</div>
-              <div className="mt-3 flex justify-center gap-3">
+              <div className="text-emerald-600 text-lg font-semibold py-1">恭喜通关！</div>
+              <div className="text-xs text-[var(--color-text-muted)]">可以选择查看词条内容或再来一局</div>
+              <div className="mt-2 flex justify-center gap-3">
                 <button
                   type="button"
-                  className="btn-primary btn-compact-mobile"
+                  className="btn-secondary btn-compact-mobile"
                   onClick={() => setOverlayVisible(v => !v)}
                 >
                   {overlayVisible ? '隐藏遮罩' : '显示遮罩'}
                 </button>
                 <button
                   type="button"
-                  className="btn-primary btn-compact-mobile"
+                  className="btn-secondary-success btn-compact-mobile"
                   onClick={() => onRestart && onRestart()}
                 >
                   再来一局
