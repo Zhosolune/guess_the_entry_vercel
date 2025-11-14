@@ -255,32 +255,32 @@ const App: React.FC = memo(() => {
             isLoading={gameState.isLoading}
             error={gameState.error}
             gameTime={gameState.gameStatus === 'victory' && finalSeconds !== null ? finalSeconds : time}
-              gameStatus={gameState.gameStatus}
-              hintsEnabled={hintsEnabled}
-              quickRefOpen={isQuickRefOpen}
-          onRestart={() => {
-            try {
-              stopTimer();
-              resetTimer();
-              setFinalSeconds(null);
-              resetGame();
-              setIsQuickRefOpen(false);
-              setIsSettingsOpen(false);
-            } catch (e) {
-              console.error('重置失败:', e);
-            }
-          }}
-          onToggleQuickRef={() => {
-            setIsQuickRefOpen(prev => {
-              const next = !prev;
-              // if (next) {
-              //   // 打开速查表 -> 关闭其他抽屉
-              //   setIsSettingsOpen(false);
-              //   setIsScoreboardOpen(false);
-              // }
-              return next;
-            });
-          }}
+            gameStatus={gameState.gameStatus}
+            hintsEnabled={hintsEnabled}
+            quickRefOpen={isQuickRefOpen}
+            onRestart={() => {
+              try {
+                stopTimer();
+                resetTimer();
+                setFinalSeconds(null);
+                resetGame();
+                setIsQuickRefOpen(false);
+                setIsSettingsOpen(false);
+              } catch (e) {
+                console.error('重置失败:', e);
+              }
+            }}
+            onToggleQuickRef={() => {
+              setIsQuickRefOpen(prev => {
+                const next = !prev;
+                // if (next) {
+                //   // 打开速查表 -> 关闭其他抽屉
+                //   setIsSettingsOpen(false);
+                //   setIsScoreboardOpen(false);
+                // }
+                return next;
+              });
+            }}
         />
       </div>
     )}

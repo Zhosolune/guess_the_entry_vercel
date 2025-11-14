@@ -260,6 +260,7 @@ export const GameLayout: React.FC<GameLayoutProps> = memo(({
         newlyRevealed={newlyRevealed}
         autoReveal={overlayVisible}
         isMobileLayout={isMobile}
+        gameStatus={gameStatus}
       />
 
       {/* 底部工具栏 */}

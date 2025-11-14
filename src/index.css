@@ -51,6 +51,7 @@
     --topbar-h: 40px;        /* TopBar 高度，h-10 约等于 40px */
     --infobar-h: 30px;       /* GameInfoBar 高度，py-1 约 30px */
     --searchbar-h: 48px;     /* SearchInput 高度，含按钮约 48px */
+    --searchbar-offset: 20px; /* SearchInput 在游戏成功时补偿的高度 */
     --bottombar-h: calc(32px + var(--safe-bottom)); /* BottomToolbar 吸底高度 */
   }
   html {
@@ -165,6 +166,7 @@
   /* 桌面端布局容器：覆盖搜索栏高度为 75px */
   .desktop-layout {
     --searchbar-h: 75px;
+    --searchbar-offset: 0px; /* SearchInput 在游戏成功时补偿的高度 */
     /* 桌面端输入框更宽裕的内边距 */
     --input-py: 0.75rem;
     --input-px: 1rem;

@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useMemo, useLayoutEffect, useRef } from 'react';
-import { EntryData } from '../../types/game.types';
+import { EntryData, GameStatus } from '../../types/game.types';
 
 interface TextDisplayAreaProps {
   /**
@@ -22,6 +22,10 @@ interface TextDisplayAreaProps {
    * 是否为移动端布局：移动端保持 fixed 填满剩余空间；桌面端采用自然流布局
    */
   isMobileLayout?: boolean;
+  /**
+   * 游戏状态
+   */
+  gameStatus: GameStatus;
 }
 
 /**
@@ -35,6 +39,7 @@ export const TextDisplayArea: React.FC<TextDisplayAreaProps> = memo(({
   newlyRevealed,
   autoReveal,
   isMobileLayout = true,
+  gameStatus,
 }) => {
   /**
    * 判断是否为标点符号（中英文）
@@ -188,20 +193,27 @@ export const TextDisplayArea: React.FC<TextDisplayAreaProps> = memo(({
     // 依赖于百科内容长度变化（揭示过程可能影响布局重排）
   }, [applyAdaptivePadding, encyclopediaContent.length]);
 
+  const maxCardHeight = 'calc(100vh - var(--topbar-h) - var(--infobar-h) - var(--searchbar-h) - var(--bottombar-h) - 32px)';
+  const maxCardContentHeight = 'calc(100vh - var(--topbar-h) - var(--infobar-h) - var(--searchbar-h) - var(--bottombar-h) - 56px)';
+  const maxSuccessCardHeight = 'calc(100vh - var(--topbar-h) - var(--infobar-h) - var(--searchbar-h) - var(--bottombar-h) - 32px - var(--searchbar-offset))';
+  const maxSuccessCardContentHeight = 'calc(100vh - var(--topbar-h) - var(--infobar-h) - var(--searchbar-h) - var(--bottombar-h) - 56px - var(--searchbar-offset))';
+  const cardMax = gameStatus == 'victory' ? maxSuccessCardHeight : maxCardHeight;
+  const contentMax = gameStatus == 'victory' ? maxSuccessCardContentHeight : maxCardContentHeight;
+
   if (isMobileLayout) {
     return (
       <div
         className="fixed left-0 right-0 z-10 overflow-hidden px-4 py-4"
         style={{
           // 使文本区域仅占据"顶部搜索栏"与"底部工具栏"之间的空间
-          top: 'calc(var(--topbar-h) + var(--infobar-h) + var(--searchbar-h))',
+          top: gameStatus == 'victory' ? 'calc(var(--topbar-h) + var(--infobar-h) + var(--searchbar-h) + var(--searchbar-offset))' :'calc(var(--topbar-h) + var(--infobar-h) + var(--searchbar-h))',
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain'
         }}
       >
         <div className="container mx-auto max-w-4xl h-full">
-          <div className="card-flat section p-2 pt-4 h-full max-h-[calc(100vh-var(--topbar-h)-var(--infobar-h)-var(--searchbar-h)-var(--bottombar-h)-32px)]">
-            <div className="flex flex-col gap-4 h-full overflow-y-auto custom-scrollbar pb-2 max-h-[calc(100vh-var(--topbar-h)-var(--infobar-h)-var(--searchbar-h)-var(--bottombar-h)-56px)]">
+          <div className="card-flat section p-2 pt-4 h-full" style={{ maxHeight: cardMax }}>
+            <div className="flex flex-col gap-4 h-full overflow-y-auto custom-scrollbar pb-2" style={{ maxHeight: contentMax }}>
               {/* 词条标题 */}
               <div className="w-full text-2xl leading-relaxed rounded-lg break-all justify-center flex flex-wrap gap-1 flex-none">
                 {renderMaskedContent(entryContent)}
