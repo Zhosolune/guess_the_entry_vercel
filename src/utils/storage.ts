@@ -8,7 +8,8 @@ import { ErrorHandler, ErrorType, AppError } from './errorHandler';
 
 const STORAGE_KEYS = {
   GAME_STATE: 'guess_the_entry_game_state',
-  GAME_STATS: 'guess_the_entry_game_stats'
+  GAME_STATS: 'guess_the_entry_game_stats',
+  EXCLUDED_ENTRIES: 'guess_the_entry_excluded_entries'
 } as const;
 
 /**
@@ -128,5 +129,76 @@ export async function loadGameStats(): Promise<any | null> {
       'LOAD_STATS_FAILED',
       error
     );
+  }
+}
+
+/**
+ * 新增已猜过的词条到排除列表
+ * 保存在本地存储，去重并忽略空白。
+ *
+ * @param entry - 词条文本
+ * @returns void
+ */
+export function addExcludedEntry(entry: string): void {
+  const name = (entry || '').trim();
+  if (!name) return;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.EXCLUDED_ENTRIES);
+    const list: string[] = raw ? JSON.parse(raw) : [];
+    if (!list.includes(name)) {
+      list.push(name);
+      localStorage.setItem(STORAGE_KEYS.EXCLUDED_ENTRIES, JSON.stringify(list));
+    }
+  } catch (_) {
+    // 忽略异常，避免影响游戏流程
+  }
+}
+
+/**
+ * 获取排除列表（本地存储 + 文档）
+ * 尝试从 `/deepseek-exclude.txt` 读取文档并与本地列表合并。
+ * 文档格式：每行一个词条，空行忽略。
+ *
+ * @returns 合并后的去重列表
+ */
+export async function getExcludedEntries(): Promise<string[]> {
+  const fromLocal = (() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.EXCLUDED_ENTRIES);
+      const list: string[] = raw ? JSON.parse(raw) : [];
+      return Array.isArray(list) ? list : [];
+    } catch (_) {
+      return [];
+    }
+  })();
+
+  let fromDoc: string[] = [];
+  try {
+    const res = await fetch('/deepseek-exclude.txt', { cache: 'no-store' });
+    if (res.ok) {
+      const text = await res.text();
+      fromDoc = text
+        .split(/\r?\n/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+    }
+  } catch (_) {
+    // 文档缺失或网络错误时忽略
+  }
+
+  const merged = new Set<string>([...fromLocal, ...fromDoc]);
+  return Array.from(merged);
+}
+
+/**
+ * 清空本地存储的排除列表
+ *
+ * @returns void
+ */
+export function clearExcludedEntries(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.EXCLUDED_ENTRIES);
+  } catch (_) {
+    // 忽略异常
   }
 }

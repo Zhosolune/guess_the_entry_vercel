@@ -61,7 +61,7 @@ export default {
  * 处理词条生成请求
  */
 async function handleGenerateEntry(request, env, corsHeaders) {
-  const { category } = await request.json();
+  const { category, excludeEntries = [] } = await request.json();
   const url = new URL(request.url);
   const fresh = url.searchParams.get('fresh') === '1';
 
@@ -92,7 +92,16 @@ async function handleGenerateEntry(request, env, corsHeaders) {
   }
 
   // 调用DeepSeek API
-  const result = await callDeepSeekAPI(category, env);
+  const norm = (s) => String(s || '')
+    .replace(/\s+/g, '')
+    .replace(/[，。！？、；：“”‘’（）《》〈〉【】—…·.,;:!?"'(){}\[\]<>\-]/g, '')
+    .toLowerCase();
+  const exSet = new Set(Array.isArray(excludeEntries) ? excludeEntries.map((x) => norm(x)) : []);
+  let result = await callDeepSeekAPI(category, env, excludeEntries);
+  if (exSet.has(norm(result.entry))) {
+    const retryList = [...excludeEntries, result.entry];
+    result = await callDeepSeekAPI(category, env, retryList);
+  }
 
   // 统一响应为前端期望的 Schema
   const payload = toApiResponse(result, category);
@@ -114,19 +123,22 @@ async function handleGenerateEntry(request, env, corsHeaders) {
 /**
  * 调用DeepSeek API
  */
-async function callDeepSeekAPI(category, env) {
+async function callDeepSeekAPI(category, env, excludeEntries = []) {
   const apiKey = env.DEEPSEEK_API_KEY;
 
   if (!apiKey) {
     throw new Error("DeepSeek API key not configured");
   }
 
+  const list = Array.isArray(excludeEntries) ? excludeEntries.filter((s) => String(s || '').trim().length > 0) : [];
+  const listText = list.length ? list.slice(0, 50).join('、') : '';
   const prompt = `请生成一个${category}领域的词条名称和对应的百科内容。
 要求：
 1. 词条名称简洁准确，2-6个汉字
 2. 百科内容400-500字，内容真实可靠，避免出现英文字符和阿拉伯数字等特殊字符
 3. 返回JSON格式：{"entry": "词条名称", "content": "百科内容", "category": "${category}"}
-4. 确保内容适合文字猜词游戏使用`;
+4. 确保内容适合文字猜词游戏使用
+${listText ? `5. 不得返回以下已猜过的词条：${listText}（与其精确匹配或仅去除空格/标点后的匹配均视为重复）\n如命中排除列表，请更换为同领域的不重复词条。` : ''}`;
 
   const response = await fetch("https://api.deepseek.com/chat/completions", {
     method: "POST",

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { GameState, GameStats, GameCategory, EntryData } from '../types/game.types';
 import { generateEntry } from '../services/deepseek';
-import { saveGameState, loadGameState, clearGameState } from '../utils/storage';
+import { saveGameState, loadGameState, clearGameState, addExcludedEntry } from '../utils/storage';
 import { ErrorHandler, ErrorType, AppError } from '../utils/errorHandler';
 
 /**
@@ -255,6 +255,10 @@ export function useGameState() {
         entry: gameState.currentEntry?.entry || '',
         victoryCount: prev.victoryCount + 1
       }));
+
+      // 将本局词条加入排除列表
+      const entryName = gameState.currentEntry?.entry || '';
+      addExcludedEntry(entryName);
     }
 
     setGameState(newGameState);

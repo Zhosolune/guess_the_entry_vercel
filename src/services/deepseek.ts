@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { ApiResponse, EntryData } from '../types/game.types';
+import { getExcludedEntries } from '../utils/storage';
 import { ErrorHandler, ErrorType, AppError } from '../utils/errorHandler';
 
 /**
@@ -97,10 +98,12 @@ const retryRequest = async (request: () => Promise<any>, retries = API_CONFIG.re
  */
 export async function generateEntry(category: string): Promise<ApiResponse<EntryData>> {
   try {
+    const excludeEntries = await getExcludedEntries();
     const requestBody = {
       category: category.toLowerCase(),
       language: 'chinese',
-      includeEncyclopedia: true
+      includeEncyclopedia: true,
+      excludeEntries
     };
     debugApiLog('POST /api/generate-entry:request', {
       baseURL: API_CONFIG.baseURL,
