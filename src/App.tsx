@@ -1,5 +1,5 @@
 import React, { useCallback, memo, useMemo } from 'react';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 import { ErrorBoundary } from './utils/errorHandler';
 import { GameStart } from './components/GameStart/GameStart';
 import { GameLayout } from './components/GameLayout/GameLayout';
@@ -95,7 +95,10 @@ const App: React.FC = memo(() => {
       clearError();
       await handleGuess(char);
     } catch (error) {
-      console.error('猜测处理失败:', error);
+      const msg = error instanceof Error ? error.message : '';
+      if (msg.includes('请输入有效的中文字符')) {
+        toast.info('请输入中文字符');
+      }
     }
   }, [clearError, handleGuess]);
 

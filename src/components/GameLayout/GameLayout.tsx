@@ -97,8 +97,9 @@ export const GameLayout: React.FC<GameLayoutProps> = memo(({
     if (isLoading || !char) return;
     
     // 验证输入
-    if (!/^[一-龥a-zA-Z]$/.test(char)) {
-      toast.error('请输入单个汉字或英文字母');
+    if (!/^[\u4e00-\u9fa5]$/.test(char)) {
+      toast.info('请输入中文字符');
+      setInputValue('');
       return;
     }
 
