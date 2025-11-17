@@ -333,17 +333,17 @@ export function useGameState() {
   /**
    * 加载保存的游戏状态
    */
-  const loadSavedGame = useCallback(async () => {
+  const loadSavedGame = useCallback(async (): Promise<GameState | null> => {
     try {
       const savedState = await loadGameState();
       if (savedState) {
         setGameState(savedState);
-        return true;
+        return savedState;
       }
-      return false;
+      return null;
     } catch (error) {
       console.error('加载保存的游戏状态失败:', ErrorHandler.getErrorLog(ErrorHandler.handleError(error)));
-      return false;
+      return null;
     }
   }, []);
 

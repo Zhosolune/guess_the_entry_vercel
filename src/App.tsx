@@ -23,7 +23,8 @@ const App: React.FC = memo(() => {
     initializeGame,
     handleGuess,
     resetGame,
-    clearError
+    clearError,
+    loadSavedGame
   } = useGameState();
 
   const { totalSeconds: time, start, stop: stopTimer, reset: resetTimer, formatTime } = useTimestampTimer();
@@ -144,6 +145,30 @@ const App: React.FC = memo(() => {
       stopTimer();
     }
   }, [gameState.gameStatus, finalSeconds, time, stopTimer]);
+
+  /**
+   * 首次挂载尝试恢复保存的游戏状态
+   * 若存在进行中的游戏：以保存的 startTime 启动计时
+   * 若胜利：计算最终秒数并停止计时
+   */
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const restored = await loadSavedGame();
+        if (restored) {
+          if (restored.gameStatus === 'playing') {
+            start(restored.startTime);
+          } else if (restored.gameStatus === 'victory') {
+            const secs = Math.floor((Date.now() - restored.startTime) / 1000);
+            setFinalSeconds(secs);
+            stopTimer();
+          }
+        }
+      } catch (e) {
+        // 忽略恢复失败，保持初始状态
+      }
+    })();
+  }, [loadSavedGame, start, stopTimer]);
 
   /**
    * 关闭所有抽屉

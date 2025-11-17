@@ -68,6 +68,20 @@ async function sha256(data: string): Promise<string> {
   return bytes.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+type PersistedContent = Omit<PersistedState, 'integrity'>;
+
+function buildContent(state: PersistedState): PersistedContent {
+  return {
+    version: state.version,
+    timestamp: state.timestamp,
+    settings: state.settings,
+    excludedEntries: state.excludedEntries,
+    stats: state.stats,
+    apiUsage: state.apiUsage,
+    lastGame: state.lastGame ?? null
+  };
+}
+
 async function getSecret(): Promise<Uint8Array> {
   const envSecret = (import.meta as any).env?.VITE_APP_STATE_SECRET as string | undefined;
   if (envSecret && envSecret.length >= 16) {
@@ -190,12 +204,14 @@ function safeRemoveItem(key: string): void {
 export async function initState(options?: SaveOptions): Promise<PersistedState> {
   const raw = safeGetItem(USER_STATE_KEY);
   if (!raw) {
-    const sanitized = { ...DEFAULT_STATE, timestamp: Date.now() };
-    const payload = JSON.stringify(sanitized);
-    const checksum = await sha256(payload);
-    const signature = await hmacSign(payload);
+    const sanitized: PersistedState = { ...DEFAULT_STATE, timestamp: Date.now() };
+    const content = buildContent(sanitized);
+    const contentStr = JSON.stringify(content);
+    const checksum = await sha256(contentStr);
+    const signature = await hmacSign(contentStr);
     sanitized.integrity = { checksum, signature, changeCount: 0 };
-    let toSave = payload;
+    const persisted = { ...content, integrity: sanitized.integrity };
+    let toSave = JSON.stringify(persisted);
     if (options?.compress) toSave = await compressString(toSave);
     if (options?.encrypt) toSave = await aesEncrypt(toSave);
     safeSetItem(USER_STATE_KEY, toSave);
@@ -212,12 +228,14 @@ export async function initState(options?: SaveOptions): Promise<PersistedState> 
     return parsed;
   } catch (error) {
     // 数据损坏：回滚到默认结构
-    const fallback = { ...DEFAULT_STATE, timestamp: Date.now() };
-    const payload = JSON.stringify(fallback);
-    const checksum = await sha256(payload);
-    const signature = await hmacSign(payload);
+    const fallback: PersistedState = { ...DEFAULT_STATE, timestamp: Date.now() };
+    const content = buildContent(fallback);
+    const contentStr = JSON.stringify(content);
+    const checksum = await sha256(contentStr);
+    const signature = await hmacSign(contentStr);
     fallback.integrity = { checksum, signature, changeCount: 0 };
-    let toSave = payload;
+    const persisted = { ...content, integrity: fallback.integrity };
+    let toSave = JSON.stringify(persisted);
     if (options?.compress) toSave = await compressString(toSave);
     if (options?.encrypt) toSave = await aesEncrypt(toSave);
     safeSetItem(USER_STATE_KEY, toSave);
@@ -229,15 +247,9 @@ export async function initState(options?: SaveOptions): Promise<PersistedState> 
  * 验证数据完整性（checksum + HMAC 签名）
  */
 export async function verifyIntegrity(state: PersistedState): Promise<boolean> {
-  const payload = JSON.stringify({
-    version: state.version,
-    timestamp: state.timestamp,
-    settings: state.settings,
-    excludedEntries: state.excludedEntries,
-    stats: state.stats
-  });
-  const checksum = await sha256(payload);
-  const signature = await hmacSign(payload);
+  const contentStr = JSON.stringify(buildContent(state));
+  const checksum = await sha256(contentStr);
+  const signature = await hmacSign(contentStr);
   const ok = (checksum === state.integrity.checksum) && (!state.integrity.signature || state.integrity.signature === signature);
   if (!ok) {
     throw new AppError('数据校验失败', ErrorType.STORAGE_ERROR, 'CHECKSUM_INVALID');
@@ -251,11 +263,11 @@ export async function verifyIntegrity(state: PersistedState): Promise<boolean> {
 export async function manualSave(options?: SaveOptions): Promise<void> {
   const state = await initState(options);
   const next = { ...state, timestamp: Date.now() };
-  const payload = JSON.stringify(next);
-  next.integrity.checksum = await sha256(payload);
-  next.integrity.signature = await hmacSign(payload);
+  const contentStr = JSON.stringify(buildContent(next));
+  next.integrity.checksum = await sha256(contentStr);
+  next.integrity.signature = await hmacSign(contentStr);
   next.integrity.changeCount += 1;
-  let toSave = payload;
+  let toSave = JSON.stringify({ ...buildContent(next), integrity: next.integrity });
   if (options?.compress) toSave = await compressString(toSave);
   if (options?.encrypt) toSave = await aesEncrypt(toSave);
   safeSetItem(USER_STATE_KEY, toSave);
@@ -277,11 +289,11 @@ export async function saveGameState(gameState: GameState, options?: SaveOptions)
   const idx = next.stats.attempts.findIndex(s => s.gameId === gameState.gameId);
   if (idx >= 0) next.stats.attempts[idx] = { ...next.stats.attempts[idx], attempts: gameState.attempts };
   else next.stats.attempts.push(item);
-  const payload = JSON.stringify(next);
-  next.integrity.checksum = await sha256(payload);
-  next.integrity.signature = await hmacSign(payload);
+  const contentStr = JSON.stringify(buildContent(next));
+  next.integrity.checksum = await sha256(contentStr);
+  next.integrity.signature = await hmacSign(contentStr);
   next.integrity.changeCount += 1;
-  let toSave = payload;
+  let toSave = JSON.stringify({ ...buildContent(next), integrity: next.integrity });
   if (options?.compress) toSave = await compressString(toSave);
   if (options?.encrypt) toSave = await aesEncrypt(toSave);
   safeSetItem(USER_STATE_KEY, toSave);
@@ -297,6 +309,7 @@ export async function loadGameState(): Promise<GameState | null> {
     // 尝试解密；若失败则按明文处理
     let plain = raw;
     try { plain = await aesDecrypt(raw); } catch {}
+    try { plain = await decompressString(plain); } catch {}
     const persisted: PersistedState = JSON.parse(plain);
     await verifyIntegrity(persisted);
     if (!persisted.lastGame) return null;
@@ -369,11 +382,13 @@ export async function updateUserSettings(patch: Partial<UserSettings>, options?:
     settings: { ...state.settings, ...patch },
     timestamp: Date.now()
   };
-  const payload = JSON.stringify(next);
-  next.integrity.checksum = await sha256(payload);
-  next.integrity.signature = await hmacSign(payload);
+  const contentStr = JSON.stringify(buildContent(next));
+  next.integrity.checksum = await sha256(contentStr);
+  next.integrity.signature = await hmacSign(contentStr);
   next.integrity.changeCount += 1;
-  const toSave = options?.encrypt ? await aesEncrypt(payload) : payload;
+  let toSave = JSON.stringify({ ...buildContent(next), integrity: next.integrity });
+  if (options?.compress) toSave = await compressString(toSave);
+  if (options?.encrypt) toSave = await aesEncrypt(toSave);
   safeSetItem(USER_STATE_KEY, toSave);
   // 同步主题模式到 ThemeContext 使用的键（保持兼容）
   if (patch.theme) {
@@ -392,11 +407,11 @@ export async function addExcludedEntry(entry: string): Promise<void> {
   const next = new Set<string>(state.excludedEntries);
   next.add(name);
   state.excludedEntries = Array.from(next);
-  const payload = JSON.stringify(state);
-  state.integrity.checksum = await sha256(payload);
-  state.integrity.signature = await hmacSign(payload);
+  const contentStr = JSON.stringify(buildContent(state));
+  state.integrity.checksum = await sha256(contentStr);
+  state.integrity.signature = await hmacSign(contentStr);
   state.integrity.changeCount += 1;
-  safeSetItem(USER_STATE_KEY, payload);
+  safeSetItem(USER_STATE_KEY, JSON.stringify({ ...buildContent(state), integrity: state.integrity }));
   // 保持旧键兼容
   try {
     const raw = localStorage.getItem(EXCLUDED_ENTRIES_KEY);
@@ -432,11 +447,11 @@ export async function updateGameStats(input: { gameId: string; timeSpent: number
   state.stats.attempts.push({ gameId: input.gameId, attempts: input.attempts });
   state.stats.completionPercent.push({ gameId: input.gameId, percent: input.percent ?? 100 });
   state.timestamp = Date.now();
-  const payload = JSON.stringify(state);
-  state.integrity.checksum = await sha256(payload);
-  state.integrity.signature = await hmacSign(payload);
+  const contentStr = JSON.stringify(buildContent(state));
+  state.integrity.checksum = await sha256(contentStr);
+  state.integrity.signature = await hmacSign(contentStr);
   state.integrity.changeCount += 1;
-  safeSetItem(USER_STATE_KEY, payload);
+  safeSetItem(USER_STATE_KEY, JSON.stringify({ ...buildContent(state), integrity: state.integrity }));
 }
 
 /**
@@ -453,11 +468,11 @@ export async function shouldAllowApiCall(key: string, limit: number, windowMs: n
   if (allowed) {
     recent.push(now);
     state.apiUsage![key] = recent;
-    const payload = JSON.stringify(state);
-    state.integrity.checksum = await sha256(payload);
-    state.integrity.signature = await hmacSign(payload);
+    const contentStr = JSON.stringify(buildContent(state));
+    state.integrity.checksum = await sha256(contentStr);
+    state.integrity.signature = await hmacSign(contentStr);
     state.integrity.changeCount += 1;
-    safeSetItem(USER_STATE_KEY, payload);
+    safeSetItem(USER_STATE_KEY, JSON.stringify({ ...buildContent(state), integrity: state.integrity }));
   }
   return allowed;
 }
