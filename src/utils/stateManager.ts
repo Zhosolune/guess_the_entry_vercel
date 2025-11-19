@@ -379,7 +379,13 @@ function deserializeGameState(s: SerializedGameState): GameState {
  * 清除持久化的用户状态（不影响主题独立存储）
  */
 export async function clearGameState(): Promise<void> {
-  safeRemoveItem(USER_STATE_KEY);
+  const state = await initState();
+  state.lastGame = null;
+  const contentStr = JSON.stringify(buildContent(state));
+  state.integrity.checksum = await sha256(contentStr);
+  state.integrity.signature = await hmacSign(contentStr);
+  state.integrity.changeCount += 1;
+  safeSetItem(USER_STATE_KEY, JSON.stringify({ ...buildContent(state), integrity: state.integrity }));
 }
 
 /**

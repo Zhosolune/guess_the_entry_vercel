@@ -89,7 +89,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const toggleTheme = (): void => {
     const next: ThemeMode = resolvedTheme === 'light' ? 'dark' : 'light';
     setMode(next);
-    localStorage.setItem(STORAGE_KEY, next);
+    try {
+      localStorage.setItem(STORAGE_KEY, next);
+    } catch {}
   };
 
   /**
@@ -97,7 +99,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
    */
   const setModeSafe = (next: ThemeMode): void => {
     setMode(next);
-    localStorage.setItem(STORAGE_KEY, next);
+    try {
+      localStorage.setItem(STORAGE_KEY, next);
+    } catch {}
   };
 
   const value: ThemeContextValue = {
