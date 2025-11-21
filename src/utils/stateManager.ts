@@ -20,11 +20,13 @@ export interface UserSettings {
   hintsEnabled?: boolean;
 }
 
+type ExcludedByCategory = Record<Exclude<GameCategory, '随机'>, string[]>;
+
 export interface PersistedState {
   version: string;
   timestamp: number;
   settings: UserSettings;
-  excludedEntries: string[];
+  excludedByCategory: ExcludedByCategory;
   stats: {
     totalSuccess: number;
     totalGames: number;
@@ -51,7 +53,17 @@ const DEFAULT_STATE: PersistedState = {
   version: '1.0.0',
   timestamp: Date.now(),
   settings: { theme: 'system', quickRefPosition: 'bottom', hintsEnabled: true },
-  excludedEntries: [],
+  excludedByCategory: {
+    '自然': [],
+    '天文': [],
+    '地理': [],
+    '动漫': [],
+    '影视': [],
+    '游戏': [],
+    '体育': [],
+    '历史': [],
+    'ACGN': []
+  },
   stats: {
     totalSuccess: 0,
     totalGames: 0,
@@ -78,7 +90,7 @@ function buildContent(state: PersistedState): PersistedContent {
     version: state.version,
     timestamp: state.timestamp,
     settings: state.settings,
-    excludedEntries: state.excludedEntries,
+    excludedByCategory: state.excludedByCategory,
     stats: state.stats,
     apiUsage: state.apiUsage,
     lastGame: state.lastGame ?? null,
@@ -416,40 +428,30 @@ export async function updateUserSettings(patch: Partial<UserSettings>, options?:
 /**
  * 追加排除词条（本地 + 状态）
  */
-export async function addExcludedEntry(entry: string): Promise<void> {
+export async function addExcludedEntry(entry: string, category: GameCategory): Promise<void> {
   const name = (entry || '').trim();
   if (!name) return;
+  if (category === '随机') return;
   const state = await initState();
-  const next = new Set<string>(state.excludedEntries);
+  const list = state.excludedByCategory[category] ?? [];
+  const next = new Set<string>(list);
   next.add(name);
-  state.excludedEntries = Array.from(next);
+  state.excludedByCategory[category] = Array.from(next);
   const contentStr = JSON.stringify(buildContent(state));
   state.integrity.checksum = await sha256(contentStr);
   state.integrity.signature = await hmacSign(contentStr);
   state.integrity.changeCount += 1;
   safeSetItem(USER_STATE_KEY, JSON.stringify({ ...buildContent(state), integrity: state.integrity }));
-  // 保持旧键兼容
-  try {
-    const raw = localStorage.getItem(EXCLUDED_ENTRIES_KEY);
-    const list: string[] = raw ? JSON.parse(raw) : [];
-    if (!list.includes(name)) {
-      list.push(name);
-      localStorage.setItem(EXCLUDED_ENTRIES_KEY, JSON.stringify(list));
-    }
-  } catch {}
 }
 
 /**
  * 获取排除词条列表（状态 + 旧键合并去重）
  */
-export async function getExcludedEntries(): Promise<string[]> {
+export async function getExcludedEntries(category: GameCategory): Promise<string[]> {
+  if (category === '随机') return [];
   const state = await initState();
-  let fromLegacy: string[] = [];
-  try {
-    const raw = localStorage.getItem(EXCLUDED_ENTRIES_KEY);
-    fromLegacy = raw ? JSON.parse(raw) : [];
-  } catch {}
-  return Array.from(new Set<string>([...state.excludedEntries, ...fromLegacy]));
+  const list = state.excludedByCategory[category] ?? [];
+  return Array.isArray(list) ? list : [];
 }
 
 /**

@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import { ApiResponse, EntryData } from '../types/game.types';
+import { ApiResponse, EntryData, GameCategory } from '../types/game.types';
 import { getExcludedEntries, shouldAllowApiCall } from '../utils/stateManager';
 import { ErrorHandler, ErrorType, AppError } from '../utils/errorHandler';
 
@@ -96,13 +96,13 @@ const retryRequest = async (request: () => Promise<any>, retries = API_CONFIG.re
  * }
  * ```
  */
-export async function generateEntry(category: string): Promise<ApiResponse<EntryData>> {
+export async function generateEntry(category: GameCategory): Promise<ApiResponse<EntryData>> {
   try {
     const allowed = await shouldAllowApiCall('generateEntry', 5, 60_000, import.meta.env.VITE_ANTI_ABUSE !== '0');
     if (!allowed) {
       throw new AppError('API调用频率超限', ErrorType.API_ERROR, 'RATE_LIMIT');
     }
-    const excludeEntries = await getExcludedEntries();
+    const excludeEntries = await getExcludedEntries(category);
     const requestBody = {
       category: category.toLowerCase(),
       language: 'chinese',
@@ -269,7 +269,19 @@ function getFallbackEntry(category: string): ApiResponse {
     }
   };
 
-  const normalizedCategory = category.toLowerCase();
+  const mapCnToSlug: Record<string, string> = {
+    '自然': 'nature',
+    '天文': 'astronomy',
+    '地理': 'geography',
+    '动漫': 'anime',
+    '影视': 'movie',
+    '游戏': 'game',
+    '体育': 'sports',
+    '历史': 'history',
+    'ACGN': 'acgn',
+    '随机': 'random'
+  };
+  const normalizedCategory = (mapCnToSlug[category] || category).toLowerCase();
   const entryData = fallbackEntries[normalizedCategory] || fallbackEntries['random'];
 
   return {
