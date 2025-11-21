@@ -266,7 +266,14 @@ export function useGameState() {
         console.warn('追加排除词失败:', ErrorHandler.getErrorLog(ErrorHandler.handleError(e)));
       }
       try {
-        await updateGameStats({ gameId: newGameState.gameId, timeSpent: Math.floor(gameTime / 1000), attempts: newGameState.attempts, percent: 100, hintCount: newGameState.hintCount, perfect: !newGameState.hintUsed });
+        const isPunctuation = (char: string): boolean => /[\p{P}\p{S}]/u.test(char);
+        const entryChars = entry.split('');
+        const encyChars = (gameState.currentEntry?.encyclopedia || '').split('');
+        const totalPositions = entryChars.filter(c => !isPunctuation(c)).length + encyChars.filter(c => !isPunctuation(c)).length;
+        const revealedPositions = entryChars.filter(c => !isPunctuation(c) && newGameState.revealedChars.has(c)).length
+          + encyChars.filter(c => !isPunctuation(c) && newGameState.revealedChars.has(c)).length;
+        const percentAtVictory = totalPositions > 0 ? Math.round((revealedPositions / totalPositions) * 100) : 0;
+        await updateGameStats({ gameId: newGameState.gameId, timeSpent: Math.floor(gameTime / 1000), attempts: newGameState.attempts, percent: percentAtVictory, hintCount: newGameState.hintCount, perfect: !newGameState.hintUsed });
       } catch (e) {
         console.warn('更新持久化统计失败:', ErrorHandler.getErrorLog(ErrorHandler.handleError(e)));
       }
@@ -360,7 +367,14 @@ export function useGameState() {
         console.warn('追加排除词失败:', ErrorHandler.getErrorLog(ErrorHandler.handleError(e)));
       }
       try {
-        await updateGameStats({ gameId: newGameState.gameId, timeSpent: Math.floor(gameTime / 1000), attempts: newGameState.attempts, percent: 100, hintCount: newGameState.hintCount, perfect: !newGameState.hintUsed });
+        const isPunctuation = (char: string): boolean => /[\p{P}\p{S}]/u.test(char);
+        const entryChars = entry.split('');
+        const encyChars = (gameState.currentEntry?.encyclopedia || '').split('');
+        const totalPositions = entryChars.filter(c => !isPunctuation(c)).length + encyChars.filter(c => !isPunctuation(c)).length;
+        const revealedPositions = entryChars.filter(c => !isPunctuation(c) && newGameState.revealedChars.has(c)).length
+          + encyChars.filter(c => !isPunctuation(c) && newGameState.revealedChars.has(c)).length;
+        const percentAtVictory = totalPositions > 0 ? Math.round((revealedPositions / totalPositions) * 100) : 0;
+        await updateGameStats({ gameId: newGameState.gameId, timeSpent: Math.floor(gameTime / 1000), attempts: newGameState.attempts, percent: percentAtVictory, hintCount: newGameState.hintCount, perfect: !newGameState.hintUsed });
       } catch (e) {
         console.warn('更新持久化统计失败:', ErrorHandler.getErrorLog(ErrorHandler.handleError(e)));
       }

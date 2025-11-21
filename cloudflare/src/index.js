@@ -63,7 +63,7 @@ export default {
 async function handleGenerateEntry(request, env, corsHeaders) {
   const { category, excludeEntries = [] } = await request.json();
   const url = new URL(request.url);
-  const fresh = url.searchParams.get('fresh') === '1';
+  const fresh = url.searchParams.get("fresh") === "1";
 
   if (!category) {
     return new Response(JSON.stringify({ error: "Category is required" }), {
@@ -92,11 +92,17 @@ async function handleGenerateEntry(request, env, corsHeaders) {
   }
 
   // 调用DeepSeek API
-  const norm = (s) => String(s || '')
-    .replace(/\s+/g, '')
-    .replace(/[，。！？、；：“”‘’（）《》〈〉【】—…·.,;:!?"'(){}\[\]<>\-]/g, '')
-    .toLowerCase();
-  const exSet = new Set(Array.isArray(excludeEntries) ? excludeEntries.map((x) => norm(x)) : []);
+  const norm = (s) =>
+    String(s || "")
+      .replace(/\s+/g, "")
+      .replace(
+        /[，。！？、；：“”‘’（）《》〈〉【】—…·.,;:!?"'(){}\[\]<>\-]/g,
+        ""
+      )
+      .toLowerCase();
+  const exSet = new Set(
+    Array.isArray(excludeEntries) ? excludeEntries.map((x) => norm(x)) : []
+  );
   let result = await callDeepSeekAPI(category, env, excludeEntries);
   if (exSet.has(norm(result.entry))) {
     const retryList = [...excludeEntries, result.entry];
@@ -130,15 +136,22 @@ async function callDeepSeekAPI(category, env, excludeEntries = []) {
     throw new Error("DeepSeek API key not configured");
   }
 
-  const list = Array.isArray(excludeEntries) ? excludeEntries.filter((s) => String(s || '').trim().length > 0) : [];
-  const listText = list.length ? list.slice(0, 50).join('、') : '';
+  const list = Array.isArray(excludeEntries)
+    ? excludeEntries.filter((s) => String(s || "").trim().length > 0)
+    : [];
+  const listText = list.length ? list.slice(0, 50).join("、") : "";
   const prompt = `请生成一个${category}领域的词条名称和对应的百科内容。
 要求：
 1. 词条名称简洁准确，2-6个汉字
 2. 百科内容400-500字，内容真实可靠，避免出现英文字符和阿拉伯数字等特殊字符
 3. 返回JSON格式：{"entry": "词条名称", "content": "百科内容", "category": "${category}"}
 4. 确保内容适合文字猜词游戏使用
-${listText ? `5. 不得返回以下已猜过的词条：${listText}（与其精确匹配或仅去除空格/标点后的匹配均视为重复）\n如命中排除列表，请更换为同领域的不重复词条。` : ''}`;
+5. 尽量兼顾词条的时效性，最好选取近年间流传度较高的热点词条
+${
+  listText
+    ? `6. 不得返回以下已猜过的词条：${listText}（与其精确匹配或仅去除空格/标点后的匹配均视为重复）\n如命中排除列表，请更换为同领域的不重复词条。`
+    : ""
+}`;
 
   const response = await fetch("https://api.deepseek.com/chat/completions", {
     method: "POST",
