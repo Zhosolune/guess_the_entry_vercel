@@ -262,7 +262,10 @@ export function useGameState() {
 
       // 将本局词条加入排除列表并更新持久化统计
       const entryName = gameState.currentEntry?.entry || '';
-      try { await addExcludedEntry(entryName, gameState.category); } catch (e) {
+      const effectiveCategory = (gameState.category === '随机' && gameState.currentEntry?.metadata?.category)
+        ? (gameState.currentEntry?.metadata?.category as GameCategory)
+        : gameState.category;
+      try { await addExcludedEntry(entryName, effectiveCategory); } catch (e) {
         console.warn('追加排除词失败:', ErrorHandler.getErrorLog(ErrorHandler.handleError(e)));
       }
       try {
@@ -273,7 +276,10 @@ export function useGameState() {
         const revealedPositions = entryChars.filter(c => !isPunctuation(c) && newGameState.revealedChars.has(c)).length
           + encyChars.filter(c => !isPunctuation(c) && newGameState.revealedChars.has(c)).length;
         const percentAtVictory = totalPositions > 0 ? Math.round((revealedPositions / totalPositions) * 100) : 0;
-        await updateGameStats({ gameId: newGameState.gameId, timeSpent: Math.floor(gameTime / 1000), attempts: newGameState.attempts, percent: percentAtVictory, hintCount: newGameState.hintCount, perfect: !newGameState.hintUsed });
+        const effectiveCategory = (gameState.category === '随机' && gameState.currentEntry?.metadata?.category)
+          ? (gameState.currentEntry?.metadata?.category as GameCategory)
+          : gameState.category;
+        await updateGameStats({ gameId: newGameState.gameId, timeSpent: Math.floor(gameTime / 1000), attempts: newGameState.attempts, category: effectiveCategory, percent: percentAtVictory, hintCount: newGameState.hintCount, perfect: !newGameState.hintUsed });
       } catch (e) {
         console.warn('更新持久化统计失败:', ErrorHandler.getErrorLog(ErrorHandler.handleError(e)));
       }
@@ -361,8 +367,11 @@ export function useGameState() {
         victoryCount: prev.victoryCount + 1
       }));
       const entryName = gameState.currentEntry?.entry || '';
+      const effectiveCategory = (gameState.category === '随机' && gameState.currentEntry?.metadata?.category)
+        ? (gameState.currentEntry?.metadata?.category as GameCategory)
+        : gameState.category;
       try {
-        await addExcludedEntry(entryName, gameState.category);
+        await addExcludedEntry(entryName, effectiveCategory);
       } catch (e) {
         console.warn('追加排除词失败:', ErrorHandler.getErrorLog(ErrorHandler.handleError(e)));
       }
@@ -374,7 +383,10 @@ export function useGameState() {
         const revealedPositions = entryChars.filter(c => !isPunctuation(c) && newGameState.revealedChars.has(c)).length
           + encyChars.filter(c => !isPunctuation(c) && newGameState.revealedChars.has(c)).length;
         const percentAtVictory = totalPositions > 0 ? Math.round((revealedPositions / totalPositions) * 100) : 0;
-        await updateGameStats({ gameId: newGameState.gameId, timeSpent: Math.floor(gameTime / 1000), attempts: newGameState.attempts, percent: percentAtVictory, hintCount: newGameState.hintCount, perfect: !newGameState.hintUsed });
+        const effectiveCategory = (gameState.category === '随机' && gameState.currentEntry?.metadata?.category)
+          ? (gameState.currentEntry?.metadata?.category as GameCategory)
+          : gameState.category;
+        await updateGameStats({ gameId: newGameState.gameId, timeSpent: Math.floor(gameTime / 1000), attempts: newGameState.attempts, category: effectiveCategory, percent: percentAtVictory, hintCount: newGameState.hintCount, perfect: !newGameState.hintUsed });
       } catch (e) {
         console.warn('更新持久化统计失败:', ErrorHandler.getErrorLog(ErrorHandler.handleError(e)));
       }

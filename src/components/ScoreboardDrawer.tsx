@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { initState } from '../utils/stateManager';
 import { CATEGORIES } from '../constants/game.constants';
 import { ScoreBoardIcon } from '../assets/scoreBoard';
@@ -29,7 +29,7 @@ const ScoreboardDrawer: React.FC<ScoreboardDrawerProps> = ({
   currentHintCount = 0,
   perfectVictory = false,
 }) => {
-  interface StatsItem { gameId: string; timeSpent?: number; attempts?: number; percent?: number; hintCount?: number; perfect?: boolean }
+  interface StatsItem { gameId: string; timeSpent?: number; attempts?: number; percent?: number; hintCount?: number; perfect?: boolean; category?: string }
   interface Aggregates { totalGames: number; totalSuccess: number; perfectSuccess: number; avgTimeSec: number; avgAttempts: number; avgProgress: number; avgHintCount: number }
 
   const [aggregates, setAggregates] = useState<Aggregates>({ totalGames: 0, totalSuccess: 0, perfectSuccess: 0, avgTimeSec: 0, avgAttempts: 0, avgProgress: 0, avgHintCount: 0 });
@@ -84,12 +84,125 @@ const ScoreboardDrawer: React.FC<ScoreboardDrawerProps> = ({
 
   const drawerClasses = `${'fixed top-[var(--topbar-h)] left-0 right-0 z-[48] transform transition-transform duration-200'} ${isOpen ? 'translate-y-0' : '-translate-y-full pointer-events-none'}`;
 
-  const computeCategoryScores = (): Record<string, number> => {
-    const scores: Record<string, number> = {};
-    Object.keys(CATEGORIES).forEach((k) => { scores[k] = 0; });
-    return scores;
+  const keys = useMemo(() => Object.keys(CATEGORIES).filter(k => k !== '随机'), []);
+  /**
+   * 聚合领域统计数据，计算各领域的胜利次数、平均用时、平均尝试、平均进度、平均提示以及总用时
+   * @param timeList 每局用时列表（含领域）
+   * @param attemptsList 每局尝试次数列表（含领域）
+   * @param percentList 每局通关进度列表（含领域、提示次数、完美标记）
+   * @returns 各领域聚合指标映射
+   */
+  const buildCategoryAgg = useCallback((timeList: StatsItem[], attemptsList: StatsItem[], percentList: StatsItem[]) => {
+    const init = Object.fromEntries(keys.map((k) => [k, { victories: 0, avgTime: 0, avgAttempts: 0, avgProgress: 0, avgHints: 0, perfectRate: 0, totalTime: 0 }]));
+    const grouped: Record<string, { victories: number; avgTime: number; avgAttempts: number; avgProgress: number; avgHints: number; perfectRate: number; totalTime: number }> = init as any;
+    const byCat = (arr: StatsItem[]) => {
+      const m: Record<string, StatsItem[]> = Object.fromEntries(keys.map((k) => [k, []]));
+      arr.forEach(i => { const cat = (i.category || '') as string; if (keys.includes(cat)) m[cat].push(i); });
+      return m;
+    };
+    const tBy = byCat(timeList);
+    const aBy = byCat(attemptsList);
+    const pBy = byCat(percentList);
+    keys.forEach((k) => {
+      const t = tBy[k];
+      const a = aBy[k];
+      const p = pBy[k];
+      const victories = p.length;
+      const avgTime = t.length ? Math.round(t.reduce((s, i) => s + (i.timeSpent || 0), 0) / t.length) : 0;
+      const totalTime = t.reduce((s, i) => s + (i.timeSpent || 0), 0);
+      const avgAttempts = a.length ? Math.round(a.reduce((s, i) => s + (i.attempts || 0), 0) / a.length) : 0;
+      const avgProgress = p.length ? Math.round(p.reduce((s, i) => s + (i.percent || 0), 0) / p.length) : 0;
+      const hinted = p.filter(i => typeof i.hintCount === 'number');
+      const avgHints = hinted.length ? Number((hinted.reduce((s, i) => s + (i.hintCount || 0), 0) / hinted.length).toFixed(2)) : 0;
+      const perfectRate = p.length ? Math.round((p.filter(i => i.perfect === true).length / p.length) * 100) : 0;
+      grouped[k] = { victories, avgTime, avgAttempts, avgProgress, avgHints, perfectRate, totalTime };
+    });
+    return grouped;
+  }, [keys]);
+
+  const [abilityChartData, setAbilityChartData] = useState<Record<string, number>>(Object.fromEntries(keys.map(k => [k, 0])));
+  const [inclinationChartData, setInclinationChartData] = useState<Record<string, number>>(Object.fromEntries(keys.map(k => [k, 0])));
+
+  useEffect(() => {
+    if (!isOpen) return;
+    (async () => {
+      try {
+        const s = await initState();
+        const timeList = (s.stats.gameTime || []) as StatsItem[];
+        const attemptsList = (s.stats.attempts || []) as StatsItem[];
+        const percentList = (s.stats.completionPercent || []) as StatsItem[];
+        const agg = buildCategoryAgg(timeList, attemptsList, percentList);
+        const sumVictories = keys.reduce((acc, k) => acc + (agg[k]?.victories || 0), 0);
+        const sumTime = keys.reduce((acc, k) => acc + (agg[k]?.totalTime || 0), 0);
+        const τ = 120; const α = 6; const β = 2;
+        const ability: Record<string, number> = {};
+        const incline: Record<string, number> = {};
+        keys.forEach((k) => {
+          const a = agg[k];
+          const S_time = 100 * Math.exp(-(a.avgTime || 0) / τ);
+          const S_attempt = 100 * Math.exp(-(a.avgAttempts || 0) / α);
+          const S_hint = 100 * Math.exp(-(a.avgHints || 0) / β);
+          const S_prog = a.avgProgress;
+          const S_perf = a.perfectRate;
+          const Ability = 0.25 * S_prog + 0.25 * S_time + 0.20 * S_attempt + 0.15 * S_hint + 0.15 * S_perf;
+          const g = sumVictories > 0 ? (a.victories / sumVictories) : 0;
+          const t = sumTime > 0 ? (a.totalTime / sumTime) : 0;
+          const Inclination = 100 * (0.6 * g + 0.4 * t);
+          ability[k] = Math.round(Math.max(0, Math.min(Ability, 100)));
+          incline[k] = Math.round(Math.max(0, Math.min(Inclination, 100)));
+        });
+        setAbilityChartData(ability);
+        setInclinationChartData(incline);
+      } catch {}
+    })();
+  }, [isOpen, buildCategoryAgg, keys]);
+
+  /**
+   * 雷达图组件
+   * @param title 图表标题
+   * @param data 各领域分值（0~100）映射
+   * @returns SVG 雷达图，边缘主题色、内部主题色浅色填充
+   */
+  const RadarChart: React.FC<{ title: string; data: Record<string, number> }> = ({ title, data }) => {
+    const size = 280; const center = size / 2; const radius = center - 24;
+    const cats = keys;
+    const angleStep = (2 * Math.PI) / cats.length;
+    const points = cats.map((k, idx) => {
+      const value = Math.max(0, Math.min((data[k] || 0), 100));
+      const r = (value / 100) * radius;
+      const angle = -Math.PI / 2 + idx * angleStep;
+      const x = center + r * Math.cos(angle);
+      const y = center + r * Math.sin(angle);
+      return `${x},${y}`;
+    }).join(' ');
+    return (
+      <div className="w-full">
+        <div className="text-[var(--color-text-secondary)] mb-2 text-center">{title}</div>
+        <div className="rounded flex justify-center">
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <circle cx={center} cy={center} r={radius} fill="none" stroke="var(--color-border)" strokeWidth={1} />
+            {[0.2,0.4,0.6,0.8].map((f,i) => (
+              <circle key={i} cx={center} cy={center} r={radius*f} fill="none" stroke="var(--color-border)" strokeWidth={0.5} opacity={0.5} />
+            ))}
+            {cats.map((k, idx) => {
+              const angle = -Math.PI / 2 + idx * angleStep;
+              const x = center + radius * Math.cos(angle);
+              const y = center + radius * Math.sin(angle);
+              const lx = center + (radius + 12) * Math.cos(angle);
+              const ly = center + (radius + 12) * Math.sin(angle);
+              return (
+                <g key={k}>
+                  <line x1={center} y1={center} x2={x} y2={y} stroke="var(--color-border)" strokeWidth={0.5} />
+                  <text x={lx} y={ly} fill="var(--color-text)" fontSize="10" textAnchor="middle" alignmentBaseline="middle">{CATEGORIES[k as keyof typeof CATEGORIES]}</text>
+                </g>
+              );
+            })}
+            <polygon points={points} fill="var(--color-primary)" opacity={0.18} stroke="var(--color-primary)" strokeWidth={2} />
+          </svg>
+        </div>
+      </div>
+    );
   };
-  const categoryScores = computeCategoryScores();
   /**
    * 处理遮罩点击
    * 若点击的是遮罩（非抽屉内容），则关闭计分板抽屉
@@ -125,7 +238,7 @@ const ScoreboardDrawer: React.FC<ScoreboardDrawerProps> = ({
         className={drawerClasses}
         role="dialog"
         aria-modal={isOpen}
-        aria-label="设置面板"
+        aria-label="计分板面板"
         onClick={stopPropagation}
       >
         <div className="w-full bg-[var(--color-surface)] border-b border-[var(--color-border)] max-h-[calc(100vh-var(--topbar-h)-var(--bottombar-h))] overflow-y-auto no-scrollbar">
@@ -140,24 +253,11 @@ const ScoreboardDrawer: React.FC<ScoreboardDrawerProps> = ({
               ))}
             </div>
 
-            <div className="w-full p-4 mt-4 bg-[var(--color-surface-2)]">
-              <div className="text-[var(--color-text-secondary)] mb-2">不同领域能力评分</div>
-              <div className="rounded p-3">
-                <div className="space-y-2">
-                  {Object.entries(CATEGORIES).map(([key, label]) => {
-                    const val = Math.max(0, Math.min(categoryScores[key] ?? 0, 100));
-                    return (
-                      <div key={key} className="flex items-center gap-3">
-                        <div className="w-16 text-xs text-[var(--color-text-secondary)] truncate">{label}</div>
-                        <div className="relative flex-1 h-4 rounded bg-[var(--color-surface)] overflow-hidden">
-                          <div className="relative h-full bg-[var(--color-primary)] opacity-70" style={{ width: `${val}%` }} />
-                        </div>
-                        <div className="w-10 text-xs text-[var(--color-text-secondary)] text-right">{val}%</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+            <div className="mt-4 p-4">  { /*  bg-[var(--color-surface-2)] */}
+            <div className="grid grid-cols-1 md:grid-cols-2">
+              <RadarChart title="领域能力" data={abilityChartData} />
+              <RadarChart title="领域倾向" data={inclinationChartData} />
+            </div>
             </div>
           </div>
 

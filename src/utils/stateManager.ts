@@ -12,6 +12,7 @@ export interface PersistedStatsItem {
   percent?: number;
   hintCount?: number;
   perfect?: boolean;
+  category?: GameCategory;
 }
 
 export interface UserSettings {
@@ -492,13 +493,13 @@ export async function getExcludedEntries(category: GameCategory | string): Promi
 /**
  * 在胜利后更新统计信息
  */
-export async function updateGameStats(input: { gameId: string; timeSpent: number; attempts: number; percent?: number; hintCount?: number; perfect?: boolean }): Promise<void> {
+export async function updateGameStats(input: { gameId: string; timeSpent: number; attempts: number; category: GameCategory; percent?: number; hintCount?: number; perfect?: boolean }): Promise<void> {
   const state = await initState();
   state.stats.totalGames += 1;
   state.stats.totalSuccess += 1;
-  state.stats.gameTime.push({ gameId: input.gameId, timeSpent: input.timeSpent });
-  state.stats.attempts.push({ gameId: input.gameId, attempts: input.attempts });
-  state.stats.completionPercent.push({ gameId: input.gameId, percent: input.percent ?? 100, hintCount: input.hintCount, perfect: input.perfect });
+  state.stats.gameTime.push({ gameId: input.gameId, timeSpent: input.timeSpent, category: input.category });
+  state.stats.attempts.push({ gameId: input.gameId, attempts: input.attempts, category: input.category });
+  state.stats.completionPercent.push({ gameId: input.gameId, percent: input.percent ?? 100, hintCount: input.hintCount, perfect: input.perfect, category: input.category });
   state.timestamp = Date.now();
   const contentStr = JSON.stringify(buildContent(state));
   state.integrity.checksum = await sha256(contentStr);

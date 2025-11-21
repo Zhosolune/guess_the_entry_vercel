@@ -75,12 +75,18 @@ async function handleGenerateEntry(request, env, corsHeaders) {
     });
   }
 
+  // 解析真实领域：当请求为“随机”时，随机选择一个实际领域
+  const REAL_CATEGORIES = ["自然","天文","地理","动漫","影视","游戏","体育","历史","ACGN"];
+  const reqCategory = (String(category) || "").trim();
+  const isRandom = reqCategory.toLowerCase() === "随机" || reqCategory.toLowerCase() === "random";
+  const resolvedCategory = isRandom ? REAL_CATEGORIES[Math.floor(Math.random() * REAL_CATEGORIES.length)] : reqCategory;
+
   // 检查缓存（fresh=1 时跳过缓存）
-  const cacheKey = `entry:${category}`;
+  const cacheKey = `entry:${resolvedCategory}`;
   if (!fresh) {
     const cached = await getCache(cacheKey, env);
     if (cached) {
-      const normalized = normalizeLegacyShape(cached, category);
+      const normalized = normalizeLegacyShape(cached, resolvedCategory);
       return new Response(JSON.stringify(normalized), {
         headers: {
           "Content-Type": "application/json",
@@ -103,14 +109,14 @@ async function handleGenerateEntry(request, env, corsHeaders) {
   const exSet = new Set(
     Array.isArray(excludeEntries) ? excludeEntries.map((x) => norm(x)) : []
   );
-  let result = await callDeepSeekAPI(category, env, excludeEntries);
+  let result = await callDeepSeekAPI(resolvedCategory, env, excludeEntries);
   if (exSet.has(norm(result.entry))) {
     const retryList = [...excludeEntries, result.entry];
-    result = await callDeepSeekAPI(category, env, retryList);
+    result = await callDeepSeekAPI(resolvedCategory, env, retryList);
   }
 
   // 统一响应为前端期望的 Schema
-  const payload = toApiResponse(result, category);
+  const payload = toApiResponse(result, resolvedCategory);
 
   // 缓存结果（1小时），fresh=1不写入缓存
   if (!fresh) {
