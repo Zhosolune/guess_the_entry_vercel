@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { GameState, GameStats, GameCategory, EntryData } from '../types/game.types';
 import { generateEntry } from '../services/deepseek';
+import { selectRandomCategory } from '../utils/categoryMapper';
 import { saveGameState, loadGameState, clearGameState, addExcludedEntry, updateGameStats } from '../utils/stateManager';
 import { ErrorHandler, ErrorType, AppError } from '../utils/errorHandler';
 
@@ -100,8 +101,8 @@ export function useGameState() {
     try {
       setGameState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // 生成词条
-      const response = await generateEntry(category);
+      const actualCategory = category === '随机' ? selectRandomCategory() : category;
+      const response = await generateEntry(actualCategory);
       // 开发模式打印原始返回，便于定位响应结构问题
       if (import.meta.env.MODE === 'development' || import.meta.env.VITE_DEBUG_API === '1') {
         console.debug('[Game/DEBUG] generateEntry:response', response);
@@ -116,7 +117,7 @@ export function useGameState() {
       const newGameState: GameState = {
         gameId: Date.now().toString(),
         gameStatus: 'playing',
-        category,
+        category: actualCategory,
         currentEntry: entryData,
         revealedChars: new Set(),
         guessedChars: new Set(),
@@ -248,23 +249,21 @@ export function useGameState() {
       setStats(prev => ({
         ...prev,
         totalGames: prev.totalGames + 1,
-        totalWins: prev.totalWins + 1,
+        totalWins: prev.totalWins + (won ? 1 : 0),
         totalAttempts: prev.totalAttempts + newGameState.attempts,
         bestTime: prev.bestTime ? Math.min(prev.bestTime, gameTime) : gameTime,
-        currentStreak: prev.currentStreak + 1,
-        maxStreak: Math.max(prev.maxStreak, prev.currentStreak + 1),
+        currentStreak: won ? prev.currentStreak + 1 : 0,
+        maxStreak: won ? Math.max(prev.maxStreak, prev.currentStreak + 1) : prev.maxStreak,
         totalTime: prev.totalTime + gameTime,
-        victory: true,
+        victory: won,
         category: gameState.category,
         entry: gameState.currentEntry?.entry || '',
-        victoryCount: prev.victoryCount + 1
+        victoryCount: won ? prev.victoryCount + 1 : prev.victoryCount
       }));
 
       // 将本局词条加入排除列表并更新持久化统计
       const entryName = gameState.currentEntry?.entry || '';
-      const effectiveCategory = (gameState.category === '随机' && gameState.currentEntry?.metadata?.category)
-        ? (gameState.currentEntry?.metadata?.category as GameCategory)
-        : gameState.category;
+      const effectiveCategory = gameState.category;
       try { await addExcludedEntry(entryName, effectiveCategory); } catch (e) {
         console.warn('追加排除词失败:', ErrorHandler.getErrorLog(ErrorHandler.handleError(e)));
       }
@@ -276,10 +275,7 @@ export function useGameState() {
         const revealedPositions = entryChars.filter(c => !isPunctuation(c) && newGameState.revealedChars.has(c)).length
           + encyChars.filter(c => !isPunctuation(c) && newGameState.revealedChars.has(c)).length;
         const percentAtVictory = totalPositions > 0 ? Math.round((revealedPositions / totalPositions) * 100) : 0;
-        const effectiveCategory = (gameState.category === '随机' && gameState.currentEntry?.metadata?.category)
-          ? (gameState.currentEntry?.metadata?.category as GameCategory)
-          : gameState.category;
-        await updateGameStats({ gameId: newGameState.gameId, timeSpent: Math.floor(gameTime / 1000), attempts: newGameState.attempts, category: effectiveCategory, percent: percentAtVictory, hintCount: newGameState.hintCount, perfect: !newGameState.hintUsed });
+        await updateGameStats({ gameId: newGameState.gameId, timeSpent: Math.floor(gameTime / 1000), attempts: newGameState.attempts, category: gameState.category, percent: percentAtVictory, hintCount: newGameState.hintCount, perfect: !newGameState.hintUsed });
       } catch (e) {
         console.warn('更新持久化统计失败:', ErrorHandler.getErrorLog(ErrorHandler.handleError(e)));
       }
@@ -367,11 +363,8 @@ export function useGameState() {
         victoryCount: prev.victoryCount + 1
       }));
       const entryName = gameState.currentEntry?.entry || '';
-      const effectiveCategory = (gameState.category === '随机' && gameState.currentEntry?.metadata?.category)
-        ? (gameState.currentEntry?.metadata?.category as GameCategory)
-        : gameState.category;
       try {
-        await addExcludedEntry(entryName, effectiveCategory);
+        await addExcludedEntry(entryName, gameState.category);
       } catch (e) {
         console.warn('追加排除词失败:', ErrorHandler.getErrorLog(ErrorHandler.handleError(e)));
       }
@@ -383,10 +376,7 @@ export function useGameState() {
         const revealedPositions = entryChars.filter(c => !isPunctuation(c) && newGameState.revealedChars.has(c)).length
           + encyChars.filter(c => !isPunctuation(c) && newGameState.revealedChars.has(c)).length;
         const percentAtVictory = totalPositions > 0 ? Math.round((revealedPositions / totalPositions) * 100) : 0;
-        const effectiveCategory = (gameState.category === '随机' && gameState.currentEntry?.metadata?.category)
-          ? (gameState.currentEntry?.metadata?.category as GameCategory)
-          : gameState.category;
-        await updateGameStats({ gameId: newGameState.gameId, timeSpent: Math.floor(gameTime / 1000), attempts: newGameState.attempts, category: effectiveCategory, percent: percentAtVictory, hintCount: newGameState.hintCount, perfect: !newGameState.hintUsed });
+        await updateGameStats({ gameId: newGameState.gameId, timeSpent: Math.floor(gameTime / 1000), attempts: newGameState.attempts, category: gameState.category, percent: percentAtVictory, hintCount: newGameState.hintCount, perfect: !newGameState.hintUsed });
       } catch (e) {
         console.warn('更新持久化统计失败:', ErrorHandler.getErrorLog(ErrorHandler.handleError(e)));
       }

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { initState } from '../utils/stateManager';
 import { CATEGORIES } from '../constants/game.constants';
+import { ACTUAL_CATEGORIES } from '../utils/categoryMapper';
 import { ScoreBoardIcon } from '../assets/scoreBoard';
 
 interface ScoreboardDrawerProps {
@@ -84,7 +85,7 @@ const ScoreboardDrawer: React.FC<ScoreboardDrawerProps> = ({
 
   const drawerClasses = `${'fixed top-[var(--topbar-h)] left-0 right-0 z-[48] transform transition-transform duration-200'} ${isOpen ? 'translate-y-0' : '-translate-y-full pointer-events-none'}`;
 
-  const keys = useMemo(() => Object.keys(CATEGORIES).filter(k => k !== '随机'), []);
+  const keys: string[] = useMemo(() => ACTUAL_CATEGORIES.slice() as unknown as string[], []);
   /**
    * 聚合领域统计数据，计算各领域的胜利次数、平均用时、平均尝试、平均进度、平均提示以及总用时
    * @param timeList 每局用时列表（含领域）

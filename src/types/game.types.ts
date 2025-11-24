@@ -15,6 +15,17 @@ export type GameCategory =
   | 'ACGN' 
   | '随机';
 
+export type ActualGameCategory = 
+  | '自然'
+  | '天文'
+  | '地理'
+  | '动漫'
+  | '影视'
+  | '游戏'
+  | '体育'
+  | '历史'
+  | 'ACGN';
+
 // 词条数据结构
 export interface EntryData {
   entry: string; // 词条名称

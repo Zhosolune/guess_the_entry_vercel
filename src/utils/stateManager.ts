@@ -1,4 +1,5 @@
 import { GameState, GameCategory } from '../types/game.types';
+import { toEnglishKey } from './categoryMapper';
 import { AppError, ErrorType } from '../utils/errorHandler';
 
 const USER_STATE_KEY = 'guess_the_entry_user_state_v1';
@@ -248,6 +249,16 @@ export async function initState(options?: SaveOptions): Promise<PersistedState> 
       return parsed as PersistedState;
     }
     const parsedState: PersistedState = parsed as PersistedState;
+    if (parsedState?.excludedByCategory && parsedState.excludedByCategory['random']) {
+      delete parsedState.excludedByCategory['random'];
+      const contentStr2 = JSON.stringify(buildContent(parsedState));
+      parsedState.integrity = {
+        checksum: await sha256(contentStr2),
+        signature: await hmacSign(contentStr2),
+        changeCount: (parsedState.integrity?.changeCount || 0) + 1
+      };
+      safeSetItem(USER_STATE_KEY, JSON.stringify({ ...buildContent(parsedState), integrity: parsedState.integrity }));
+    }
     await verifyIntegrity(parsedState);
     return parsedState;
   } catch (error) {
@@ -454,7 +465,8 @@ export async function addExcludedEntry(entry: string, category: GameCategory): P
   const name = (entry || '').trim();
   if (!name) return;
   const state = await initState();
-  const categoryKey = normalizeCategoryKey(category);
+  if (category === '随机') return;
+  const categoryKey = toEnglishKey(category);
   const bucket = state.excludedByCategory?.[categoryKey] ?? [];
   const set = new Set<string>(bucket);
   set.add(name);
@@ -484,7 +496,8 @@ export async function addExcludedEntry(entry: string, category: GameCategory): P
  */
 export async function getExcludedEntries(category: GameCategory | string): Promise<string[]> {
   const state = await initState();
-  const key = normalizeCategoryKey(category);
+  if (category === '随机') return [];
+  const key = toEnglishKey(category as string);
   const bucket = state.excludedByCategory?.[key] ?? [];
   try { localStorage.removeItem(EXCLUDED_ENTRIES_KEY); } catch {}
   return bucket;
@@ -583,19 +596,4 @@ export async function setUIPanels(patch: { quickRefOpen?: boolean; settingsOpen?
   state.integrity.changeCount += 1;
   safeSetItem(USER_STATE_KEY, JSON.stringify({ ...buildContent(state), integrity: state.integrity }));
 }
-function normalizeCategoryKey(category: GameCategory | string): string {
-  const s = String(category).toLowerCase();
-  switch (s) {
-    case '自然': return 'nature';
-    case '天文': return 'astronomy';
-    case '地理': return 'geography';
-    case '动漫': return 'anime';
-    case '影视': return 'movie';
-    case '游戏': return 'game';
-    case '体育': return 'sports';
-    case '历史': return 'history';
-    case 'acgn': return 'acgn';
-    case '随机': return 'random';
-    default: return s;
-  }
-}
+// normalizeCategoryKey 已废弃，使用 toEnglishKey 代替

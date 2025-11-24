@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { ApiResponse, EntryData } from '../types/game.types';
 import { getExcludedEntries, shouldAllowApiCall } from '../utils/stateManager';
+import { toEnglishKey, selectRandomCategory } from '../utils/categoryMapper';
 import { ErrorHandler, ErrorType, AppError } from '../utils/errorHandler';
 
 /**
@@ -97,14 +98,15 @@ const retryRequest = async (request: () => Promise<any>, retries = API_CONFIG.re
  * ```
  */
 export async function generateEntry(category: string): Promise<ApiResponse<EntryData>> {
+  const actualCategory = (category === '随机') ? selectRandomCategory() : category;
   try {
     const allowed = await shouldAllowApiCall('generateEntry', 5, 60_000, import.meta.env.VITE_ANTI_ABUSE !== '0');
     if (!allowed) {
       throw new AppError('API调用频率超限', ErrorType.API_ERROR, 'RATE_LIMIT');
     }
-    const excludeEntries = await getExcludedEntries(category);
+    const excludeEntries = await getExcludedEntries(actualCategory);
     const requestBody = {
-      category: category.toLowerCase(),
+      category: toEnglishKey(actualCategory),
       language: 'chinese',
       includeEncyclopedia: true,
       excludeEntries
@@ -133,7 +135,18 @@ export async function generateEntry(category: string): Promise<ApiResponse<Entry
       throw new AppError('API返回数据格式无效', ErrorType.API_ERROR, 'INVALID_RESPONSE');
     }
 
-    return response.data;
+    const resp = response.data as ApiResponse<EntryData>;
+    if (resp?.data) {
+      const nextMetadata = resp.data.metadata
+        ? { ...resp.data.metadata, category: toEnglishKey(actualCategory) }
+        : undefined;
+      resp.data = {
+        ...resp.data,
+        category: actualCategory as any,
+        metadata: nextMetadata
+      };
+    }
+    return resp;
   } catch (error) {
     if (error instanceof AppError) {
       debugApiLog('POST /api/generate-entry:app-error', ErrorHandler.getErrorLog(error));
@@ -145,8 +158,8 @@ export async function generateEntry(category: string): Promise<ApiResponse<Entry
     
     // 如果是网络错误或API错误，使用降级方案
     if (appError.type === 'NETWORK_ERROR' || appError.type === 'API_ERROR') {
-      debugApiLog('POST /api/generate-entry:fallback', { category });
-      return getFallbackEntry(category);
+      debugApiLog('POST /api/generate-entry:fallback', { category: actualCategory });
+      return getFallbackEntry(toEnglishKey(actualCategory));
     }
     
     throw appError;
