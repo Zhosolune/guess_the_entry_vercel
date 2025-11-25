@@ -141,8 +141,20 @@ VITE_API_BASE_URL=https://your-worker.your-subdomain.workers.dev
 
 ## 📱 部署说明
 
-### Vercel部署
-1. 连接GitHub仓库到Vercel
+### Cloudflare Pages 部署 (推荐) ⭐
+**免费 + 自动部署 + 国内高速访问**
+
+- 📖 [完整部署指南](./docs/CLOUDFLARE_DEPLOYMENT.md) - 详细步骤和配置说明
+- 🚀 [快速开始](./docs/DEPLOYMENT_QUICK_START.md) - 5 分钟快速部署
+
+**优势**:
+- ✅ 完全免费,无限带宽
+- ✅ 国内访问速度极佳
+- ✅ GitHub 自动部署
+- ✅ 全球 CDN 加速
+
+### Vercel 部署
+1. 连接 GitHub 仓库到 Vercel
 2. 配置环境变量
 3. 自动部署设置
 

@@ -1,0 +1,41 @@
+# GitHub Actions 工作流 - 预览部署通知
+# 当 PR 创建时,自动在评论中添加 Cloudflare Pages 预览链接
+
+name: Preview Deployment Comment
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const commitHash = context.payload.pull_request.head.sha.substring(0, 8);
+            const previewUrl = `https://${commitHash}.guess-the-entry-web.pages.dev`;
+            
+            const comment = `## 🚀 预览部署
+            
+            你的更改已自动部署到 Cloudflare Pages!
+            
+            **预览链接**: ${previewUrl}
+            
+            > 注意: 预览部署可能需要 2-3 分钟才能完成。
+            
+            ---
+            
+            📝 **提交**: \`${commitHash}\`
+            🌿 **分支**: \`${context.payload.pull_request.head.ref}\`
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: prNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
