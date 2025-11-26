@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { GameInfoText } from '../assets/gameInfo';
 
 interface GameInfoDrawerProps {
@@ -44,6 +44,35 @@ const GameInfoDrawer: React.FC<GameInfoDrawerProps> = ({
     e.stopPropagation();
   };
 
+  const [inviteCode, setInviteCode] = useState('');
+  const [verificationStatus, setVerificationStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  useEffect(() => {
+    const verified = localStorage.getItem('site_verification_passed') === 'true';
+    if (verified) {
+      setVerificationStatus('success');
+      setInviteCode('CGJB');
+    }
+  }, []);
+
+  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.toUpperCase();
+    setInviteCode(val);
+    if (verificationStatus !== 'idle') {
+      setVerificationStatus('idle');
+    }
+  };
+
+  const handleVerify = () => {
+    if (inviteCode === 'CGJB') {
+      localStorage.setItem('site_verification_passed', 'true');
+      setVerificationStatus('success');
+    } else {
+      localStorage.removeItem('site_verification_passed');
+      setVerificationStatus('error');
+    }
+  };
+
   return (
     <>
       {isOpen && (
@@ -72,6 +101,57 @@ const GameInfoDrawer: React.FC<GameInfoDrawerProps> = ({
               <p>2、输入单个汉字进行猜测，正确的字符会显示出来</p>
               <p>3、猜错的字符会被添加到“坟场”区域</p>
               <p>4、完全揭示词条内容即可获胜！</p>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-[var(--color-border)]">
+              <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
+                邀请码验证（启用内置模型）
+              </label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={inviteCode}
+                  onChange={handleCodeChange}
+                  placeholder="请输入邀请码"
+                  className="flex-1 px-3 py-2 bg-[var(--color-bg-input)] border border-[var(--color-border)] rounded text-[var(--color-text)] focus:outline-none transition-colors uppercase"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleVerify();
+                    }
+                  }}
+                />
+                <button
+                  onClick={handleVerify}
+                  disabled={inviteCode.length !== 4}
+                  className={`p-2 text-white rounded transition-all ${
+                    verificationStatus === 'success' 
+                      ? 'bg-green-500 hover:opacity-90' 
+                      : verificationStatus === 'error'
+                      ? 'bg-red-500 hover:opacity-90'
+                      : inviteCode.length !== 4
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-[var(--color-primary)] hover:opacity-90'
+                  }`}
+                  aria-label="验证邀请码"
+                >
+                  {verificationStatus === 'success' ? (
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : verificationStatus === 'error' ? (
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  ) : (
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                输入正确的邀请码并点击确认后，将解锁内置的大模型。如果您拥有自己的 DeepSeek API Key，可以在设置中配置，无需邀请码。
+              </p>
             </div>
 
           </div>

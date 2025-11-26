@@ -276,8 +276,8 @@ const App: React.FC = memo(() => {
     });
   }, []);
 
-  const showSettingsButton = (gameState.gameStatus === 'playing' || gameState.gameStatus === 'victory');
-  const showScoreboardButton = (gameState.gameStatus === 'playing' || gameState.gameStatus === 'victory');
+  const showSettingsButton = true;
+  const showScoreboardButton = true;
 
   return (
     <ErrorBoundary>
@@ -381,23 +381,21 @@ const App: React.FC = memo(() => {
       />
     )}
     {/* 设置抽屉（TopBar 下方，最上层） */}
-    {(gameState.gameStatus === 'playing' || gameState.gameStatus === 'victory') && (
-      <SettingsDrawer
-        isOpen={isSettingsOpen}
-        onClose={() => {
-          setIsSettingsOpen(false);
-          setUIPanels({ settingsOpen: false }).catch(() => {});
-        }}
-        quickRefPosition={quickRefPosition}
-        onChangeQuickRefPosition={(pos) => {
-          setQuickRefPosition(pos);
-          updateUserSettings({ quickRefPosition: pos }).catch(() => {});
-        }}
-      />
-    )}
+    <SettingsDrawer
+      isOpen={isSettingsOpen}
+      onClose={() => {
+        setIsSettingsOpen(false);
+        setUIPanels({ settingsOpen: false }).catch(() => {});
+      }}
+      quickRefPosition={quickRefPosition}
+      onChangeQuickRefPosition={(pos) => {
+        setQuickRefPosition(pos);
+        updateUserSettings({ quickRefPosition: pos }).catch(() => {});
+      }}
+    />
+
     {/* 计分板抽屉（TopBar 下方，最上层） */}
-    {(gameState.gameStatus === 'playing' || gameState.gameStatus === 'victory') && (
-      <ScoreboardDrawer
+    <ScoreboardDrawer
         isOpen={isScoreboardOpen}
         onClose={() => {
           setIsScoreboardOpen(false);
@@ -406,7 +404,6 @@ const App: React.FC = memo(() => {
         currentHintCount={gameState.hintCount}
         perfectVictory={gameState.gameStatus === 'victory' && !gameState.hintUsed}
       />
-    )}
   </div>
   </ErrorBoundary>
   );

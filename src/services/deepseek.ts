@@ -23,7 +23,7 @@ const API_CONFIG = {
  * 优先级：本地存储 > 环境变量
  * 如果两者都没有，返回空字符串，由后端代理注入内置 Key
  */
-async function getApiKey(): Promise<string> {
+async function getApiKey(): Promise<string | null> {
   const localKey = await getDeepSeekApiKey();
   if (localKey && localKey.trim()) {
     return localKey.trim();
@@ -34,8 +34,15 @@ async function getApiKey(): Promise<string> {
     return envKey.trim();
   }
 
-  // 返回空字符串，表示需要后端代理注入
-  return '';
+  // 检查是否通过了网站验证（邀请码）
+  const verified = localStorage.getItem('site_verification_passed') === 'true';
+  if (verified) {
+    // 返回空字符串，表示需要后端代理注入
+    return '';
+  }
+
+  // 未配置Key且未验证，返回null
+  return null;
 }
 
 /**
@@ -64,6 +71,16 @@ export async function generateEntry(category: string): Promise<ApiResponse<Entry
     }
 
     const apiKey = await getApiKey();
+    
+    // 如果没有获取到有效Key（包括内置Key的权限），抛出错误
+    if (apiKey === null) {
+      throw new AppError(
+        '请在设置中配置API Key，或在游戏规则中输入邀请码以启用内置AI助手', 
+        ErrorType.CONFIG_ERROR, 
+        'MISSING_API_KEY'
+      );
+    }
+
     const excludeEntries = await getExcludedEntries(actualCategory);
     
     const systemPrompt = `你是一个中文猜词游戏的出题官。请根据用户指定的“领域”生成一个词条（Entry）和一段百科解释（Encyclopedia）。

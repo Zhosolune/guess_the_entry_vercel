@@ -68,9 +68,9 @@ export const GameStart: React.FC<GameStartProps> = memo(({ onStartGame, isLoadin
 
     try {
       await onStartGame(selectedCategory as GameCategory, enableHints);
-    } catch (error) {
+    } catch (error: any) {
       console.error('游戏开始失败:', error);
-      toast.error('游戏开始失败，请稍后重试');
+      toast.error(error.message || '游戏开始失败，请稍后重试');
     }
   }, [selectedCategory, enableHints, onStartGame]);
 
