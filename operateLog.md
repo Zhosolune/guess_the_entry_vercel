@@ -12,6 +12,8 @@
 原因：提升密度与阅读连续性，优化暗色主题与现代滚动条视觉一致性。
 测试状态：[已测试]
 
+
+
 变更摘要：统一 GameCategory 类型为中文枚举，调整 CATEGORIES 为中文键，消除类型不一致导致的潜在诊断问题。
 原因：常量使用英文键与类型文件使用中文枚举不一致，可能引发 IDE/TS 误诊与后续数据不一致。
 测试状态：[已测试]
@@ -660,4 +662,20 @@
 
 变更摘要：计分板增加“胜率”指标；指标样式改为大数字+小文字，一行6列流式布局；领域能力评分增加背景填充占位并保持数值填充待计算。
 原因：增强统计可读性与视觉一致性，预留评分公式接入空间。
+测试状态：[已测试]
+
+时间：2025-11-26 10:00
+操作类型：[重构|删除|新增]
+影响文件：
+- src/services/deepseek.ts
+- src/components/SettingsDrawer.tsx
+- src/utils/storage.ts
+- vercel.json
+- vite.config.ts
+- README.md
+- docs/CLOUDFLARE_DEPLOYMENT.md (已删除)
+- docs/DEPLOYMENT_QUICK_START.md (已删除)
+
+变更摘要：移除Cloudflare Worker代理，重构为前端直连DeepSeek API；新增Vercel Rewrite解决跨域；添加用户自定义API Key设置功能。
+原因：简化架构，去除对Cloudflare Worker的依赖，支持用户自定义Key。
 测试状态：[已测试]

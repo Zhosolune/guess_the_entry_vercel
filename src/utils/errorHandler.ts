@@ -25,6 +25,7 @@ export enum ErrorType {
   API_ERROR = 'API_ERROR',           // API相关错误（HTTP错误、服务端错误）
   NETWORK_ERROR = 'NETWORK_ERROR',   // 网络连接错误（超时、断网等）
   VALIDATION_ERROR = 'VALIDATION_ERROR', // 数据验证错误（输入格式、必填项等）
+  CONFIG_ERROR = 'CONFIG_ERROR',     // 配置错误（缺少API Key、环境变量等）
   STORAGE_ERROR = 'STORAGE_ERROR',   // 存储相关错误（localStorage、内存不足等）
   UNKNOWN_ERROR = 'UNKNOWN_ERROR'    // 未知错误（兜底类型）
 }

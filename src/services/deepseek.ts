@@ -3,222 +3,186 @@ import { ApiResponse, EntryData } from '../types/game.types';
 import { getExcludedEntries, shouldAllowApiCall } from '../utils/stateManager';
 import { toEnglishKey, selectRandomCategory } from '../utils/categoryMapper';
 import { ErrorHandler, ErrorType, AppError } from '../utils/errorHandler';
+import { getDeepSeekApiKey } from '../utils/storage';
 
 /**
  * DeepSeek API服务
- * 通过Cloudflare Worker代理调用DeepSeek API生成词条
- * 
- * 主要功能：
- * - 词条生成：根据选择的领域生成词条和百科内容
- * - 错误处理：网络错误重试和降级方案
- * - API状态检测：连接测试和状态监控
- * 
- * 错误处理策略：
- * - 网络错误：自动重试3次，失败后使用本地降级数据
- * - API错误：返回预设的降级词条数据
- * - 数据验证：严格验证API响应格式
+ * 前端直接调用DeepSeek API生成词条（通过Vercel Rewrite解决CORS）
  */
 
 // API配置
 const API_CONFIG = {
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://your-worker.your-subdomain.workers.dev',
-  timeout: 30000, // 30秒超时
-  retries: 3, // 重试次数
-  retryDelay: 1000 // 重试延迟（毫秒）
+  // 使用Vercel Rewrite的代理路径，或在本地开发时通过Vite proxy转发
+  baseURL: '/api/deepseek-proxy', 
+  timeout: 60000, // 60秒超时（生成可能较慢）
+  model: 'deepseek-chat',
 };
 
 /**
- * 创建API客户端实例
- * 配置基础URL、超时时间和请求头
+ * 获取API Key
+ * 优先级：本地存储 > 环境变量
+ * 如果两者都没有，返回空字符串，由后端代理注入内置 Key
  */
-const apiClient = axios.create({
-  baseURL: API_CONFIG.baseURL,
-  timeout: API_CONFIG.timeout,
-  headers: {
-    'Content-Type': 'application/json',
+async function getApiKey(): Promise<string> {
+  const localKey = await getDeepSeekApiKey();
+  if (localKey && localKey.trim()) {
+    return localKey.trim();
   }
-});
+  
+  const envKey = import.meta.env.VITE_DEEPSEEK_API_KEY;
+  if (envKey && envKey.trim()) {
+    return envKey.trim();
+  }
+
+  // 返回空字符串，表示需要后端代理注入
+  return '';
+}
 
 /**
- * 调试日志输出（仅开发环境）
- * 在开发模式或显式开启 `VITE_DEBUG_API=1` 时打印 API 请求与返回
- *
- * @param label - 日志标签，用于标识输出来源
- * @param payload - 任意可序列化的调试数据
+ * 调试日志输出
  */
 function debugApiLog(label: string, payload: unknown): void {
   const enable = (import.meta.env.MODE === 'development') || (import.meta.env.VITE_DEBUG_API === '1');
   if (!enable) return;
   try {
-    // 直接输出对象，开发者工具可展开查看结构
     console.debug(`[API/DEBUG] ${label}`, payload);
   } catch (_) {
-    // 兜底：序列化失败时尽可能输出文本信息
     console.debug(`[API/DEBUG] ${label} (stringified)`, String(payload));
   }
 }
 
 /**
- * 请求重试逻辑
- * 在网络错误时自动重试，支持指数退避
- * 
- * @param request - 需要重试的请求函数
- * @param retries - 剩余重试次数
- * @returns 请求结果
- * @throws 最后一次请求的错误
- */
-const retryRequest = async (request: () => Promise<any>, retries = API_CONFIG.retries): Promise<any> => {
-  try {
-    return await request();
-  } catch (error) {
-    if (retries > 0 && ErrorHandler.handleError(error).type === 'NETWORK_ERROR') {
-      await new Promise(resolve => setTimeout(resolve, API_CONFIG.retryDelay));
-      return retryRequest(request, retries - 1);
-    }
-    throw error;
-  }
-};
-
-/**
  * 生成词条
- * 根据选择的领域生成词条和百科内容
- * 
- * @param category - 领域分类（如：nature, astronomy, geography等）
- * @returns API响应，包含词条数据
- * @throws AppError - 网络错误或API错误时会使用降级方案
- * 
- * 使用示例：
- * ```typescript
- * try {
- *   const response = await generateEntry('nature');
- *   console.log(response.data.entry); // "光合作用"
- * } catch (error) {
- *   console.error('词条生成失败:', error);
- * }
- * ```
  */
 export async function generateEntry(category: string): Promise<ApiResponse<EntryData>> {
   const actualCategory = (category === '随机') ? selectRandomCategory() : category;
+  
   try {
-    const allowed = await shouldAllowApiCall('generateEntry', 5, 60_000, import.meta.env.VITE_ANTI_ABUSE !== '0');
+    const allowed = await shouldAllowApiCall('generateEntry', 10, 60_000, false); // 放宽限制
     if (!allowed) {
       throw new AppError('API调用频率超限', ErrorType.API_ERROR, 'RATE_LIMIT');
     }
+
+    const apiKey = await getApiKey();
     const excludeEntries = await getExcludedEntries(actualCategory);
+    
+    const systemPrompt = `你是一个中文猜词游戏的出题官。请根据用户指定的“领域”生成一个词条（Entry）和一段百科解释（Encyclopedia）。
+    要求：
+    1. 返回格式必须为标准 JSON，不要包含 Markdown 代码块标记。
+    2. JSON 结构：
+    {
+      "entry": "词条名（不含标点）",
+      "encyclopedia": "百科解释",
+      "metadata": {
+        "category": "领域英文名",
+        "difficulty": "easy/medium/hard"
+      }
+    }
+    3. 词条名称简洁准确，2-6个汉字
+    4. 百科内容400-500字，内容真实可靠，避免出现英文字符和阿拉伯数字等特殊字符
+    4. 确保内容适合文字猜词游戏使用
+    5. 尽量兼顾词条的时效性，最好选取近年间流传度较高的热点词条
+    6. 避免抽象的概念或过于专业的术语
+    7. 词条应当是该领域内广为人知的概念或事物。
+    8. 排除列表中的词条不要再次生成。`;
+
+    const userPrompt = `领域：${actualCategory}
+    排除词条：${excludeEntries.join(', ')}
+    请生成一个新的词条。`;
+
     const requestBody = {
-      category: toEnglishKey(actualCategory),
-      language: 'chinese',
-      includeEncyclopedia: true,
-      excludeEntries
+      model: API_CONFIG.model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 1.2, // 增加随机性
+      stream: false
     };
-    debugApiLog('POST /api/generate-entry:request', {
-      baseURL: API_CONFIG.baseURL,
-      body: requestBody
+
+    debugApiLog('POST /chat/completions:request', { 
+      category: actualCategory,
+      excludeEntries 
     });
 
-    const response = await retryRequest(async () => {
-      // 通过 fresh=1 显式关闭服务端缓存，确保每次生成新的词条
-      return await apiClient.post('/api/generate-entry?fresh=1', requestBody);
-    });
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
 
-    debugApiLog('POST /api/generate-entry:response', {
-      status: response?.status,
-      data: response?.data
-    });
-
-    if (!isValidApiResponse(response.data)) {
-      // 打印响应关键结构，辅助定位字段缺失或类型不匹配问题
-      debugApiLog('POST /api/generate-entry:invalid-shape', {
-        keys: response?.data ? Object.keys(response.data) : null,
-        sample: response?.data
-      });
-      throw new AppError('API返回数据格式无效', ErrorType.API_ERROR, 'INVALID_RESPONSE');
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
     }
 
-    const resp = response.data as ApiResponse<EntryData>;
-    if (resp?.data) {
-      const nextMetadata = resp.data.metadata
-        ? { ...resp.data.metadata, category: toEnglishKey(actualCategory) }
-        : undefined;
-      resp.data = {
-        ...resp.data,
-        category: actualCategory as any,
-        metadata: nextMetadata
-      };
+    const response = await axios.post(`${API_CONFIG.baseURL}`, requestBody, {
+      headers,
+      timeout: API_CONFIG.timeout
+    });
+
+    debugApiLog('POST /chat/completions:response', response.data);
+
+    const content = response.data?.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new AppError('API返回内容为空', ErrorType.API_ERROR, 'EMPTY_RESPONSE');
     }
-    return resp;
+
+    let parsedData: any;
+    try {
+      parsedData = JSON.parse(content);
+    } catch (e) {
+      throw new AppError('API返回JSON格式错误', ErrorType.API_ERROR, 'INVALID_JSON');
+    }
+
+    // 转换格式以适配 ApiResponse<EntryData>
+    const entryData: EntryData = {
+      entry: parsedData.entry,
+      encyclopedia: parsedData.encyclopedia,
+      category: parsedData.metadata?.category || toEnglishKey(actualCategory),
+      metadata: {
+        ...parsedData.metadata,
+        category: toEnglishKey(actualCategory)
+      }
+    };
+
+    if (!isValidEntryData(entryData)) {
+       throw new AppError('生成的数据结构无效', ErrorType.API_ERROR, 'INVALID_STRUCTURE');
+    }
+
+    return {
+      success: true,
+      data: entryData,
+      timestamp: Date.now()
+    };
+
   } catch (error) {
     if (error instanceof AppError) {
-      debugApiLog('POST /api/generate-entry:app-error', ErrorHandler.getErrorLog(error));
-      throw error;
+      // 如果是缺少Key，直接抛出，不走降级
+      if (error.code === 'MISSING_API_KEY') {
+        throw error;
+      }
+      debugApiLog('generateEntry:app-error', ErrorHandler.getErrorLog(error));
+    } else {
+      const appError = ErrorHandler.handleError(error);
+      debugApiLog('generateEntry:error', ErrorHandler.getErrorLog(appError));
     }
     
-    const appError = ErrorHandler.handleError(error);
-    debugApiLog('POST /api/generate-entry:handled-error', ErrorHandler.getErrorLog(appError));
-    
-    // 如果是网络错误或API错误，使用降级方案
-    if (appError.type === 'NETWORK_ERROR' || appError.type === 'API_ERROR') {
-      debugApiLog('POST /api/generate-entry:fallback', { category: actualCategory });
-      return getFallbackEntry(toEnglishKey(actualCategory));
-    }
-    
-    throw appError;
+    // 降级处理
+    console.warn('API调用失败，使用本地降级数据');
+    return getFallbackEntry(toEnglishKey(actualCategory));
   }
 }
 
-/**
- * 验证API响应数据
- * 严格验证API返回的数据格式是否符合预期
- * 
- * @param data - 需要验证的响应数据
- * @returns 数据是否有效
- * 
- * 验证规则：
- * - 必须有success字段且为true
- * - 必须有data字段且为对象
- * - data.entry必须是非空字符串
- * - data.encyclopedia（可选）必须是字符串
- * - data.metadata（可选）必须是对象
- */
-export function isValidApiResponse(data: any): data is ApiResponse<EntryData> {
-  if (!data || typeof data !== 'object') {
-    return false;
-  }
-
-  if (!data.success || !data.data) {
-    return false;
-  }
-
-  const entryData = data.data;
-  
-  // 验证词条数据
-  if (!entryData.entry || typeof entryData.entry !== 'string' || entryData.entry.length === 0) {
-    return false;
-  }
-
-  // 验证百科内容（可选）
-  if (entryData.encyclopedia && typeof entryData.encyclopedia !== 'string') {
-    return false;
-  }
-
-  // 验证元数据（可选）
-  if (entryData.metadata && typeof entryData.metadata !== 'object') {
-    return false;
-  }
-
-  return true;
+function isValidEntryData(data: any): data is EntryData {
+  return data && 
+    typeof data.entry === 'string' && 
+    data.entry.length > 0 &&
+    typeof data.encyclopedia === 'string';
 }
 
 /**
  * 获取降级词条
- * 当API不可用时返回预设的词条数据
- * 
- * @param category - 领域分类
- * @returns 包含预设词条数据的API响应
- * 
- * 降级词条覆盖了所有主要领域，确保游戏在离线状态下也能正常运行
  */
-function getFallbackEntry(category: string): ApiResponse {
+function getFallbackEntry(category: string): ApiResponse<EntryData> {
   const fallbackEntries: Record<string, EntryData> = {
     'nature': {
       entry: '光合作用',
@@ -294,42 +258,23 @@ function getFallbackEntry(category: string): ApiResponse {
 
 /**
  * 测试API连接
- * 检测后端服务是否可用
- * 
- * @returns 连接是否成功
- * @example
- * ```typescript
- * const isOnline = await testApiConnection();
- * console.log(isOnline ? 'API服务正常' : 'API服务不可用');
- * ```
  */
 export async function testApiConnection(): Promise<boolean> {
   try {
-    const response = await apiClient.get('/api/health');
-    const data = response?.data ?? {};
-    const okStatus = data?.status === 'ok' || data?.status === 'healthy';
-    const deepseekOk = !!(data?.deepseek && data.deepseek.connected === true);
-    return okStatus || deepseekOk;
+    // 简单的模型列表请求来测试 Key 是否有效
+    const apiKey = await getApiKey();
+    await axios.get(`${API_CONFIG.baseURL}/models`, {
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+      timeout: 10000
+    });
+    return true;
   } catch (error) {
-    console.warn('API连接测试失败:', ErrorHandler.getErrorLog(ErrorHandler.handleError(error)));
     return false;
   }
 }
 
 /**
  * 获取API状态
- * 获取详细的API连接状态信息
- * 
- * @returns 包含在线状态、响应时间和错误信息的详细状态
- * 
- * 返回格式：
- * ```typescript
- * {
- *   online: boolean,      // API是否在线
- *   responseTime?: number, // 响应时间（毫秒）
- *   error?: string        // 错误信息（如果失败）
- * }
- * ```
  */
 export async function getApiStatus(): Promise<{
   online: boolean;
@@ -337,15 +282,13 @@ export async function getApiStatus(): Promise<{
   error?: string;
 }> {
   const startTime = Date.now();
-  
   try {
     const online = await testApiConnection();
     const responseTime = Date.now() - startTime;
-    
     return {
       online,
       responseTime: online ? responseTime : undefined,
-      error: online ? undefined : 'API服务不可用'
+      error: online ? undefined : 'API不可用或Key无效'
     };
   } catch (error) {
     return {

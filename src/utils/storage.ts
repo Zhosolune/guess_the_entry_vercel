@@ -9,8 +9,21 @@ import { ErrorHandler, ErrorType, AppError } from './errorHandler';
 const STORAGE_KEYS = {
   GAME_STATE: 'guess_the_entry_game_state',
   GAME_STATS: 'guess_the_entry_game_stats',
-  EXCLUDED_ENTRIES: 'guess_the_entry_excluded_entries'
+  EXCLUDED_ENTRIES: 'guess_the_entry_excluded_entries',
+  DEEPSEEK_API_KEY: 'guess_the_entry_deepseek_api_key'
 } as const;
+
+export async function getDeepSeekApiKey(): Promise<string | null> {
+  return localStorage.getItem(STORAGE_KEYS.DEEPSEEK_API_KEY);
+}
+
+export async function saveDeepSeekApiKey(apiKey: string): Promise<void> {
+  if (!apiKey) {
+    localStorage.removeItem(STORAGE_KEYS.DEEPSEEK_API_KEY);
+  } else {
+    localStorage.setItem(STORAGE_KEYS.DEEPSEEK_API_KEY, apiKey);
+  }
+}
 
 /**
  * 保存游戏状态到本地存储

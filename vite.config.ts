@@ -17,4 +17,22 @@ export default defineConfig({
     }),
     tsconfigPaths()
   ],
+  server: {
+    proxy: {
+      '/api/deepseek-proxy': {
+        target: 'https://api.deepseek.com',
+        changeOrigin: true,
+        rewrite: (path) => '/chat/completions',
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            // 如果请求头中没有 Authorization，且环境变量中有 Key，则注入
+            const userKey = req.headers['authorization'];
+            if (!userKey && process.env.VITE_DEEPSEEK_API_KEY) {
+              proxyReq.setHeader('Authorization', `Bearer ${process.env.VITE_DEEPSEEK_API_KEY}`);
+            }
+          });
+        }
+      }
+    }
+  }
 })

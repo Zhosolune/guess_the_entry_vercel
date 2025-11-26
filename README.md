@@ -27,7 +27,7 @@
 ### 🎲 词条生成
 - **多领域支持**：涵盖自然、天文、地理、动漫、影视、游戏、体育、历史、ACGN等领域
 - **随机选项**：提供随机领域选择
-- **API集成**：通过Cloudflare Worker代理调用DeepSeek API
+- **API集成**：前端直接调用DeepSeek API（支持Vercel Rewrite解决CORS）
 - **降级方案**：API不可用时使用本地预设词条
 
 ### 📱 移动端优化
@@ -58,6 +58,18 @@
 ### 环境要求
 - Node.js >= 18.0.0
 - npm >= 9.0.0
+
+### 配置环境变量
+
+在项目根目录创建 `.env` 文件（参考 `.env.example`）：
+
+```bash
+VITE_DEEPSEEK_API_KEY=your_deepseek_api_key_here
+```
+
+**说明：**
+- **本地开发**：`VITE_DEEPSEEK_API_KEY` 用于本地代理注入 Key。
+- **线上部署**：需要在 Vercel 部署设置中添加 `DEEPSEEK_API_KEY` 环境变量。
 
 ### 安装依赖
 ```bash
